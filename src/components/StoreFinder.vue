@@ -1,0 +1,299 @@
+<template>
+  <div style="text-align: center;">
+    <Panel header="Store Finder">
+      <div style="margin: 20px;">
+        <Message
+          severity="info"
+          :closable="true"
+        >
+          This sample application uses locations of 18 major train stations as UK store locations, and over 3500 post offices as
+          US store locations. Please start by selecting the drop-down. Either allow the browser to locate where you are, or enter text
+          into the field.
+        </Message>
+        <Message
+          v-if="errorMessage"
+          severity="error"
+          :closable="true"
+        >
+          The site encountered an error ({{ errorMessage }})
+        </Message>
+        <h2>With over 3500 international stores, it is easier than ever to experience our world class service!</h2>
+        <Dropdown
+          v-model="selectedCountry"
+          :options="availableCountries"
+          option-label="name"
+          :placeholder="defaultCountryName"
+          style="margin-left: 10px;"
+        />
+      </div>
+      <div style="text-align: center; margin: 40px;">
+        <AutoComplete
+          v-model="selectedDeparturePlace"
+          force-selection
+          :suggestions="suggestedDeparturePlaces"
+          option-label="text"
+          @complete="returnDeparturePlacesSuggestions($event)"
+          @item-select="selectDeparturePlaceSuggestion($event)"
+        />
+        <Button
+          label="Locate me"
+          icon="pi pi-compass"
+          icon-pos="right"
+          style="margin-left: 10px;"
+          @click="handleGeolocationViaBrowser($event)"
+        />
+      </div>
+      <div v-if="((destinationLocations.length > 0) && Object.keys(departureLocation).length > 0)">
+        <p v-if="selectedDeparturePlace">
+          Stores near {{ selectedDeparturePlace.text }} ({{ destinationLocations.length }} results)
+        </p>
+        <p v-else-if="Object.keys(departureLocation).length > 0">
+          Stores near you ({{ destinationLocations.length }} results)
+        </p>
+      </div>
+      <div
+        v-if="destinationLocations.length > 0"
+        style="display: flex; gap: 10px; flex-wrap: wrap; width: 100%; text-align: center;"
+      >
+        <Card
+          v-for="store in destinationLocations.slice(0, maxResults)"
+          v-if="Object.keys(departureLocation).length > 0"
+          style="width: 25em; float:none; margin:0 auto;"
+        >
+          <template #header>
+            <img
+              :alt="store.name"
+              src="../assets/store.jpeg"
+            >
+          </template>
+          <template #title>
+            {{ store.name }}
+          </template>
+          <template #content>
+            <p v-if="store.Distance">
+              <i class="pi pi-car" /> Distance: {{ Math.trunc(store.Distance) }} km
+            </p>
+            <p v-if="store.DurationSeconds">
+              <i class="pi pi-hourglass" /> Duration: {{ Math.trunc(store.DurationSeconds / 60) }} min by car
+            </p>
+            <p v-if="store.hours">
+              <i class="pi pi-clock" /> Opening hours: {{ store.hours }}
+            </p>
+            <p v-if="store.address">
+              <i class="pi pi-directions" /> {{ store.address }}
+            </p>
+          </template>
+        </Card>
+      </div>
+      <div
+        id="map"
+        style="margin-top: 40px; height: 80vh;"
+      />
+    </Panel>
+  </div>
+</template>
+
+<script>
+  // AWS Amplify Geo and maplibre-gl libraries
+  import { createMap } from "maplibre-gl-js-amplify";
+  import { Geo } from "aws-amplify";
+  import maplibregl from "maplibre-gl";
+  import "maplibre-gl/dist/maplibre-gl.css"
+  import axios from "axios";
+
+  export default {
+    name: "StoreFinder",
+    data() {
+      return {
+        map: "",
+        geo: "",
+        location: "",
+        errorMessage: "",
+        apiEndpoint: import.meta.env.VITE_APIGATEWAY_ENDPOINT_API1,
+        defaultCountryCode: import.meta.env.VITE_AMAZON_LOCATION_SERVICE_DEFAULT_COUNTRY_CODE,
+        defaultCountryName: "",
+        maxResults: import.meta.env.VITE_MAX_RESULTS_DEFAULT,
+        selectedCountry: "",
+        availableCountries: [
+          {name: "United Kingdom", code: "GBR", defaultCenterLocation: [51.5072, -0.1276]},
+          {name: "United States", code: "USA", defaultCenterLocation: [40.7128, -74.0060]}
+        ],
+        departureMarker: "",
+        destinationMarkers: [],
+        selectedDeparturePlace: "",
+        suggestedDeparturePlaces: [],
+        suggestionValueText: "",
+        departureLocation: {},
+        destinationLocations: []
+      }
+    },
+    watch: {
+      departureLocation: {
+        handler(newDepartureLocation) {
+          this.displayDepartureLocationMarker(this, newDepartureLocation)
+          this.returnNearestStores()
+        },
+        deep: true
+      },
+      destinationLocations: {
+        handler(newDestinationLocations) {
+          this.displayDestinationLocationMarkers(this, newDestinationLocations)
+        },
+        deep: true
+      },
+      selectedCountry: {
+        handler(newSelectedCountry) {
+          if (newSelectedCountry.code === "USA") {
+            this.apiEndpoint = import.meta.env.VITE_APIGATEWAY_ENDPOINT_API2
+          } else if (newSelectedCountry.code === "GBR") {
+            this.apiEndpoint = import.meta.env.VITE_APIGATEWAY_ENDPOINT_API1
+            this.returnAllStores()
+          }
+        }
+      }
+    },
+    mounted() {
+      this.defaultCountryName = this.availableCountries.filter((country)=>{
+        return country.code === this.defaultCountryCode
+      })[0].name
+      this.initializeMap().then(()=> {
+        this.returnAllStores()
+      })
+    },
+    methods: {
+      handleGeolocationViaBrowser() {
+        // Use browser API to return current location.
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(this.updateDepartureLocation);
+          this.selectedDeparturePlace = ""
+          this.destinationLocations = []
+        } else {
+          console.log("Geolocation is not supported by this browser.")
+        }
+      },
+      async returnNearestStores() {
+        // Return only the near3est stores using the API endpoint.
+        this.destinationLocations = []
+        let post_request = {
+          "Departure":
+              {"Point": [this.departureLocation.longitude, this.departureLocation.latitude]},
+          "MaxResults": this.maxResults
+        }
+        // Hash used to drive caching behaviour on server-side.
+        this.generateHash(JSON.stringify(post_request)).then(data =>
+        {
+          axios.post(this.apiEndpoint + "/nearest", post_request, {params: {hash: data}}).then(response => {
+            this.destinationLocations = response.data
+          }).catch(error => {
+            console.log(error)
+            this.errorMessage = error.message
+            if (error.hasOwnProperty("response")) {
+              this.errorMessage = this.errorMessage + " " + error.response.data
+            }
+          })
+        })
+      },
+      async returnAllStores() {
+        // Return all stores using the API endpoint.
+        await axios.get(this.apiEndpoint + "/").then(response=> {
+          this.destinationLocations = response.data
+        }).catch(error=>{
+          console.log(error)
+          this.errorMessage = error.message
+        })
+      },
+      updateDepartureLocation(position) {
+        // Update the departure location.
+        this.departureLocation.latitude = position.coords.latitude
+        this.departureLocation.longitude = position.coords.longitude
+      },
+      async initializeMap() {
+        // Display map tiles.
+        this.map = await createMap(
+          {
+            container: "map",
+            zoom: import.meta.env.VITE_DEFAULT_MAP_ZOOM,
+            center: [import.meta.env.VITE_DEFAULT_MAP_CENTER_LONG, import.meta.env.VITE_DEFAULT_MAP_CENTER_LAT]
+          }
+        );
+        this.map.addControl(new maplibregl.NavigationControl(), "top-left");
+      },
+      displayDepartureLocationMarker(context, departureLocation) {
+        // Display departure maker on the map tiles.
+        if (context.departureMarker) {
+          context.departureMarker.remove()
+        }
+        context.departureMarker = new maplibregl.Marker({color: "#0000FF"}).setLngLat(
+            [departureLocation.longitude, departureLocation.latitude]
+        ).addTo(context.map);
+        context.map.jumpTo({center: [departureLocation.longitude, departureLocation.latitude], zoom: import.meta.env.VITE_DEFAULT_MAP_ZOOM});
+      },
+      displayDestinationLocationMarkers(context, destinationLocations) {
+        // Display destination makers on the map tiles.
+        if (context.destinationMarkers) {
+          context.destinationMarkers.forEach(function (marker) {
+            marker.remove()
+          })
+          context.destinationMarkers = []
+        }
+        let bounds = new maplibregl.LngLatBounds();
+        destinationLocations.forEach(function (location) {
+          let marker = new maplibregl.Marker(
+              {color: "#FF0000"}).setLngLat([location.location[0], location.location[1]]).setPopup(
+                new maplibregl.Popup().setHTML("<b>"+location.name+"</b>")
+              )
+          .addTo(context.map);
+          context.destinationMarkers.push(marker)
+          bounds.extend([location.location[0], location.location[1]])
+        })
+        if (Object.keys(context.departureLocation).length > 0) {
+          bounds.extend([context.departureLocation.longitude, context.departureLocation.latitude])
+        }
+        context.map.fitBounds(bounds, {
+          padding: {top: 70, bottom:50, left: 50, right: 50}
+        })
+      },
+      returnDeparturePlacesSuggestions(text) {
+        // Use entered text to return suggestions of placeIds.
+        if (text) {
+          let countryCode = ""
+          if (this.selectedCountry === "") {
+            countryCode = this.defaultCountryCode
+          } else {
+            countryCode = this.selectedCountry.code
+          }
+          const searchForSuggestionsOptions = {
+            countries: [countryCode]
+          }
+          Geo.searchForSuggestions(text.query, searchForSuggestionsOptions).then((results) => {
+            this.suggestedDeparturePlaces = results
+          }).catch((error) => {
+            console.log(error)
+          })
+        }
+      },
+      selectDeparturePlaceSuggestion() {
+        // Used placeId to return the coordinates of selected departure place.
+        if (this.selectedDeparturePlace) {
+          Geo.searchByPlaceId(this.selectedDeparturePlace.placeId).then(
+              (result) => {
+                this.departureLocation.latitude = result.geometry.point[1]
+                this.departureLocation.longitude = result.geometry.point[0]
+              }).catch((error) => {
+                console.log(error)
+              }
+          )
+          this.destinationLocations = []
+        }
+      },
+      async generateHash(inputString) {
+        // Generate unique hash. Used for caching by Amazon API Gateway.
+        const hashBuffer = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(String(inputString)))
+        const hashArray = Array.from(new Uint8Array(hashBuffer))
+        return hashArray
+            .map((b) => b.toString(16).padStart(2, "0"))
+            .join("");
+      }
+    }
+  }
+</script>

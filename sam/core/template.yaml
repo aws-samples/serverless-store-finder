@@ -1,0 +1,242 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: 'CloudFormation stack to provision the store finder core infrastructure'
+
+Globals:
+  Function:
+    Runtime: python3.9
+    MemorySize: 512
+    Timeout: 15
+
+Parameters:
+  storeFinderFrontendS3BucketName:
+    Description: Provide the name of the Amazon S3 bucket used to host your frontend files.
+    Type: String
+    AllowedPattern: '(?=^.{3,63}$)(^[a-z0-9]+[a-z0-9\-]+[a-z0-9]+$)'
+
+Resources:
+  storeFinderFrontendS3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref storeFinderFrontendS3BucketName
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: BucketOwnerEnforced
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: 'AES256'
+  storeFinderFrontendS3BucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref storeFinderFrontendS3BucketName
+      PolicyDocument:
+        Statement:
+          - Action:
+              - 's3:GetObject'
+            Effect: 'Allow'
+            Resource: !Sub 'arn:${AWS::Partition}:s3:::${storeFinderFrontendS3BucketName}/*'
+            Principal:
+              Service: 'cloudfront.amazonaws.com'
+            Condition:
+              StringEquals:
+                AWS:SourceArn: !Sub 'arn:${AWS::Partition}:cloudfront::${AWS::AccountId}:distribution/${storeFinderCloudFrontDistribution.Id}'
+  storeFinderCloudFormationAccessLoggingS3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: BucketOwnerPreferred
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: 'AES256'
+  storeFinderCloudFrontDistribution:
+    Type: 'AWS::CloudFront::Distribution'
+    Properties:
+      DistributionConfig:
+        DefaultCacheBehavior:
+          CachePolicyId: '658327ea-f89d-4fab-a63d-7e88639e58f6'
+          TargetOriginId: 'StoreFinderS3OriginBucket'
+          ViewerProtocolPolicy: 'redirect-to-https'
+        Logging:
+          Bucket: !Sub '${storeFinderCloudFormationAccessLoggingS3Bucket.DomainName}'
+          IncludeCookies: 'false'
+          Prefix: 'CFDistributionAccessLogs'
+        Comment: 'Store Finder Amazon CloudFront distribution'
+        DefaultRootObject: 'index.html'
+        Enabled: 'true'
+        HttpVersion: http2
+        Origins:
+          - Id: 'StoreFinderS3OriginBucket'
+            DomainName: !Sub '${storeFinderFrontendS3BucketName}.s3.${AWS::Region}.amazonaws.com'
+            S3OriginConfig:
+              OriginAccessIdentity: ''
+            OriginAccessControlId: !GetAtt storeFinderCloudFrontOriginAccessControl.Id
+  storeFinderCloudFrontOriginAccessControl:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Description: 'Origin access control for Store Finder S3 bucket'
+        Name: !Sub '${AWS::StackName}-OriginAccessControl'
+        OriginAccessControlOriginType: 's3'
+        SigningBehavior: 'always'
+        SigningProtocol: 'sigv4'
+  storeFinderAmazonLocationServiceMap:
+    Type: AWS::Location::Map
+    Properties:
+      Configuration:
+        Style: 'VectorEsriTopographic'
+      Description: !Sub '${AWS::StackName} StoreFinder Map'
+      MapName: !Sub '${AWS::StackName}-StoreFinder-Map'
+  storeFinderAmazonLocationServicePlaceIndex:
+    Type: AWS::Location::PlaceIndex
+    Properties:
+      DataSource: 'Esri'
+      Description: !Sub '${AWS::StackName} StoreFinder Place Index'
+      IndexName: !Sub '${AWS::StackName}-StoreFinder-PlaceIndex'
+  storeFinderAmazonLocationServiceRouteCalculator:
+    Type: AWS::Location::RouteCalculator
+    Properties:
+      CalculatorName: !Sub '${AWS::StackName}-StoreFinder-RouteCalculator'
+      DataSource: 'Esri'
+      Description: !Sub '${AWS::StackName} StoreFinder Route Calculator'
+  storeFinderAmazonCognitoIdentityPool:
+    Type: AWS::Cognito::IdentityPool
+    Properties:
+      AllowUnauthenticatedIdentities: true
+  storeFinderAmazonCognitoDefaultUnauthenticatedRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Action: 'sts:AssumeRoleWithWebIdentity'
+            Condition:
+              StringEquals:
+                cognito-identity.amazonaws.com:aud: !Ref storeFinderAmazonCognitoIdentityPool
+              ForAnyValue:StringLike:
+                cognito-identity.amazonaws.com:amr: 'unauthenticated'
+            Effect: 'Allow'
+            Principal:
+              Federated: 'cognito-identity.amazonaws.com'
+  storeFinderAmazonCognitoDefaultUnauthenticatedPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: !Sub '${AWS::StackName}-StoreFinder-AmazonCognitoDefaultUnauthenticatedPolicy'
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: 'Allow'
+            Action:
+              - 'geo:GetMapGlyphs'
+              - 'geo:GetMapSprites'
+              - 'geo:GetMapStyleDescriptor'
+              - 'geo:GetMapTile'
+            Resource: !GetAtt storeFinderAmazonLocationServiceMap.Arn
+            Condition:
+              StringLike:
+                aws:referer:
+                  - !Sub 'http://localhost:5173/*'
+                  - !Sub 'http://localhost:5174/*'
+                  - !Sub 'http://127.0.0.1:5173/*'
+                  - !Sub 'http://127.0.0.1:5174/*'
+                  - !Sub 'https://${storeFinderCloudFrontDistribution.DomainName}/*'
+          - Effect: 'Allow'
+            Action:
+              - 'geo:GetPlace'
+              - 'geo:SearchPlaceIndexForSuggestions'
+            Resource: !GetAtt storeFinderAmazonLocationServicePlaceIndex.Arn
+      Roles:
+        - !Ref storeFinderAmazonCognitoDefaultUnauthenticatedRole
+  storeFinderAmazonCognitoDefaultAuthenticatedRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Action: 'sts:AssumeRoleWithWebIdentity'
+            Condition:
+              StringEquals:
+                cognito-identity.amazonaws.com:aud: !Ref storeFinderAmazonCognitoIdentityPool
+              ForAnyValue:StringLike:
+                cognito-identity.amazonaws.com:amr: 'authenticated'
+            Effect: 'Allow'
+            Principal:
+              Federated: 'cognito-identity.amazonaws.com'
+  storeFinderAmazonCognitoDefaultAuthenticatedPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: !Sub '${AWS::StackName}-StoreFinder-AmazonCognitoDefaultAuthenticatedPolicy'
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: 'Allow'
+            Action:
+              - 'geo:GetMapGlyphs'
+              - 'geo:GetMapSprites'
+              - 'geo:GetMapStyleDescriptor'
+              - 'geo:GetMapTile'
+            Resource: !GetAtt storeFinderAmazonLocationServiceMap.Arn
+            Condition:
+              StringLike:
+                aws:referer:
+                  - !Sub 'http://localhost:5173/*'
+                  - !Sub 'https://${storeFinderCloudFrontDistribution.DomainName}/*'
+          - Effect: 'Allow'
+            Action:
+              - 'geo:GetPlaceIndex'
+              - 'geo:GetPlace'
+              - 'geo:SearchPlaceIndexForSuggestions'
+            Resource: !GetAtt storeFinderAmazonLocationServicePlaceIndex.Arn
+      Roles:
+        - !Ref storeFinderAmazonCognitoDefaultAuthenticatedRole
+  storeFinderAmazonCognitoIdentityPoolRoleAttachment:
+    Type: AWS::Cognito::IdentityPoolRoleAttachment
+    Properties:
+      IdentityPoolId: !Ref storeFinderAmazonCognitoIdentityPool
+      Roles:
+        unauthenticated: !GetAtt storeFinderAmazonCognitoDefaultUnauthenticatedRole.Arn
+        authenticated: !GetAtt storeFinderAmazonCognitoDefaultAuthenticatedRole.Arn
+
+Outputs:
+  storeFinderAmazonCognitoIdentityPoolName:
+    Value: !Ref storeFinderAmazonCognitoIdentityPool
+    Description: 'Amazon Cognito Identity Pool. Use this in your frontend application.'
+  storeFinderAmazonLocationServiceMapName:
+    Value: !Ref storeFinderAmazonLocationServiceMap
+    Description: 'Amazon Location Service map name. Use this in your frontend application.'
+  storeFinderAmazonLocationServicePlaceIndexName:
+    Value: !Ref storeFinderAmazonLocationServicePlaceIndex
+    Description: 'Amazon Location Service place index name. Use this in your frontend application.'
+  storeFinderAmazonCloudFrontDistributionUrl:
+    Value: !Sub 'https://${storeFinderCloudFrontDistribution.DomainName}'
+    Description: 'URL to use in your browser to access the application.'
+    Export:
+      Name: !Sub '${AWS::StackName}-StoreFinder-Url'
+  storeFinderFrontendS3BucketUploadLocation:
+    Value: !Sub 's3://${storeFinderFrontendS3Bucket}'
+    Description: 'Upload your frontend files here for hosting.'
+  storeFinderAmazonLocationServiceRouteCalculatorArn:
+    Value: !GetAtt storeFinderAmazonLocationServiceRouteCalculator.Arn
+    Description: 'Route calculator resource ARN.'
+    Export:
+      Name: !Sub '${AWS::StackName}-StoreFinder-RouteCalculatorArn'
+  storeFinderAmazonLocationServiceRouteCalculatorName:
+    Value: !Ref storeFinderAmazonLocationServiceRouteCalculator
+    Description: 'Route calculator resource Name.'
+    Export:
+      Name: !Sub '${AWS::StackName}-StoreFinder-RouteCalculatorName'
+
+

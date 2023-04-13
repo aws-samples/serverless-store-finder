@@ -1,0 +1,451 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: 'CloudFormation stack to provision the Store Finder API pattern 2'
+
+Globals: 
+  Function:
+    Runtime: python3.9
+    MemorySize: 512
+    Timeout: 15
+
+Parameters:
+  storeFinderCoreCloudFormationStackName:
+    Description: Provide the name of the previously deployed CloudFormation stack for the store finder core infrastructure.
+    Type: String
+  storeFinderAuroraDBMasterUserName:
+    AllowedPattern: '[a-zA-Z0-9_]+'
+    ConstraintDescription: Must be between 1 to 16 alphanumeric characters.
+    Description: 'The database admin account user name, between 1 to 16 alphanumeric characters.'
+    MaxLength: 16
+    MinLength: 1
+    Type: String
+    Default: admin_user
+  storeFinderDataImportS3BucketName:
+    Description: 'Name of the Amazon S3 bucket used to host the store file to be imported.'
+    Type: String
+    AllowedPattern: '(?=^.{3,63}$)(^[a-z0-9]+[a-z0-9\-]+[a-z0-9]+$)'
+
+Resources:
+  storeFinderLocationsVPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 172.31.0.0/16
+      EnableDnsHostnames: True
+      EnableDnsSupport: True
+  storeFinderVPCPublicSubnetOne:
+    Type: AWS::EC2::Subnet
+    Properties:
+      CidrBlock: 172.31.1.0/24
+      VpcId: !Ref storeFinderLocationsVPC
+      AvailabilityZone: !Sub '${AWS::Region}a'
+      MapPublicIpOnLaunch: 'false'
+  storeFinderVPCPublicSubnetTwo:
+    Type: AWS::EC2::Subnet
+    Properties:
+      CidrBlock: 172.31.2.0/24
+      VpcId: !Ref storeFinderLocationsVPC
+      AvailabilityZone: !Sub '${AWS::Region}b'
+      MapPublicIpOnLaunch: 'false'
+  storeFinderVPCPrivateSubnetOne:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref storeFinderLocationsVPC
+      AvailabilityZone: !Sub '${AWS::Region}a'
+      CidrBlock: 172.31.3.0/24
+      MapPublicIpOnLaunch: 'false'
+  storeFinderVPCPrivateSubnetTwo:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref storeFinderLocationsVPC
+      AvailabilityZone: !Sub '${AWS::Region}b'
+      CidrBlock: 172.31.4.0/24
+      MapPublicIpOnLaunch: 'false'
+  storeFinderLambdaSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties: 
+      GroupDescription: 'Security group used by the Store Finder Lambda functions'
+      VpcId: !Ref storeFinderLocationsVPC
+      SecurityGroupEgress: 
+        - CidrIp: 0.0.0.0/0
+          Description: 'Allow outbound HTTPS traffic on port 443'
+          FromPort: 443
+          IpProtocol: tcp
+          ToPort: 443
+  storeFinderLambdaSecurityGroupEgress:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      Description: 'Allow outbound PostgreSQL traffic on port 5432'
+      DestinationSecurityGroupId: !Ref storeFinderAuroraDBSecurityGroup
+      FromPort: 5432
+      IpProtocol: tcp
+      ToPort: 5432
+      GroupId: !Ref storeFinderLambdaSecurityGroup
+  storeFinderAuroraDBSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: 'Security group for the Aurora database'
+      VpcId: !Ref storeFinderLocationsVPC
+      SecurityGroupEgress:
+        -   CidrIp: 0.0.0.0/0
+            Description: 'Allow all outbound access to internet'
+            FromPort: -1
+            IpProtocol: -1
+            ToPort: -1
+      SecurityGroupIngress: 
+        -   Description: 'Allow inbound access to the PostgreSQL port'
+            FromPort: 5432
+            ToPort: 5432
+            IpProtocol: tcp
+            SourceSecurityGroupId: !Ref storeFinderLambdaSecurityGroup
+  storeFinderVPCFlowLogRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: 'Allow'
+            Principal:
+              Service:
+                - 'vpc-flow-logs.amazonaws.com'
+            Action:
+              - 'sts:AssumeRole'
+      Path: '/'
+      Policies:
+        - PolicyName: !Sub '${AWS::StackName}-StoreFinder-VPCFlowLogRole'
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: 'Allow'
+                Action:
+                  - 'logs:CreateLogStream'
+                  - 'logs:PutLogEvents'
+                  - 'logs:DescribeLogStreams'
+                  - 'logs:DescribeLogGroups'
+                Resource: !GetAtt storeFinderVPCFlowLogCWLogGroup.Arn
+  storeFinderVPCFlowLogCWLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      RetentionInDays: 7
+  storeFinderVPCFlowLog:
+    Type: AWS::EC2::FlowLog
+    Properties:
+      DeliverLogsPermissionArn: !GetAtt storeFinderVPCFlowLogRole.Arn
+      LogGroupName: !Ref storeFinderVPCFlowLogCWLogGroup
+      ResourceId: !Ref storeFinderLocationsVPC
+      ResourceType: VPC
+      TrafficType: ALL
+  storeFinderVPCInternetGateway:
+    Type: AWS::EC2::InternetGateway
+  storeFinderVPCInternetGWAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref storeFinderLocationsVPC
+      InternetGatewayId: !Ref storeFinderVPCInternetGateway
+  storeFinderVPCPublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref storeFinderLocationsVPC
+  storeFinderVPCPublicRoute:
+    Type: AWS::EC2::Route
+    DependsOn: storeFinderVPCInternetGWAttachment
+    Properties:
+      RouteTableId: !Ref storeFinderVPCPublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref storeFinderVPCInternetGateway
+  storeFinderVPCPublicSubnet1RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref storeFinderVPCPublicSubnetOne
+      RouteTableId: !Ref storeFinderVPCPublicRouteTable
+  storeFinderVPCPublicSubnet2RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref storeFinderVPCPublicSubnetTwo
+      RouteTableId: !Ref storeFinderVPCPublicRouteTable
+  storeFinderVPCNatGateway:
+    Type: AWS::EC2::NatGateway
+    Properties: 
+      SubnetId: !Ref storeFinderVPCPublicSubnetOne
+      AllocationId: !GetAtt storeFinderVPCNATPublicIP.AllocationId
+  storeFinderVPCNATPublicIP:
+    Type: AWS::EC2::EIP
+    DependsOn: storeFinderLocationsVPC
+    Properties:
+      Domain: vpc
+  storeFinderVPCPrivateRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref storeFinderLocationsVPC
+  storeFinderVPCPrivateRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      NatGatewayId: !Ref storeFinderVPCNatGateway
+      RouteTableId: !Ref storeFinderVPCPrivateRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+  storeFinderPrivateSubnet1RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref storeFinderVPCPrivateSubnetOne
+      RouteTableId: !Ref storeFinderVPCPrivateRouteTable
+  storeFinderPrivateSubnet2RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref storeFinderVPCPrivateSubnetTwo
+      RouteTableId: !Ref storeFinderVPCPrivateRouteTable
+  storeFinderAuroraDBSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: !Sub "${AWS::StackName}-StoreFinder-AuroraUserSecret"
+      Description: "Aurora database auto-generated user password"
+      GenerateSecretString:
+        SecretStringTemplate: !Sub '{"username": "${storeFinderAuroraDBMasterUserName}"}'
+        GenerateStringKey: "password"
+        PasswordLength: 30
+        ExcludeCharacters: '"@/\'
+      Tags:
+        -
+          Key: AppName
+          Value: !Sub "${AWS::StackName}"
+  storeFinderAuroraDBSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: "Subnet group for Store Finder Aurora database"
+      SubnetIds:
+        - !Ref storeFinderVPCPrivateSubnetOne
+        - !Ref storeFinderVPCPrivateSubnetTwo
+  storeFinderAuroraCluster:
+    Type: AWS::RDS::DBCluster
+    Properties:
+      Engine: aurora-postgresql
+      EngineVersion: 13.9
+      DBClusterIdentifier: !Sub "${AWS::StackName}-StoreFinder-AuroraCluster"
+      MasterUsername: !Join ['', ['{{resolve:secretsmanager:', !Ref storeFinderAuroraDBSecret, ':SecretString:username}}' ]]
+      MasterUserPassword: !Join ['', ['{{resolve:secretsmanager:', !Ref storeFinderAuroraDBSecret, ':SecretString:password}}' ]]
+      ServerlessV2ScalingConfiguration:
+        MinCapacity: 0.5
+        MaxCapacity: 8
+      DBSubnetGroupName: !Ref storeFinderAuroraDBSubnetGroup
+      VpcSecurityGroupIds: 
+        - !Ref storeFinderAuroraDBSecurityGroup
+      Port: 5432
+      StorageEncrypted: 'true'
+  storeFinderAuroraInstance:
+    Type: AWS::RDS::DBInstance 
+    Properties:
+      Engine: aurora-postgresql
+      DBInstanceClass: db.serverless
+      DBClusterIdentifier: !Ref storeFinderAuroraCluster
+      PubliclyAccessible: 'false'
+  storeFindersDataImport3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref storeFinderDataImportS3BucketName
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: 'AES256'
+  storeFinderAPILambdaLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${AWS::StackName}-StoreFinder-API'
+      RetentionInDays: 7
+  storeFinderLambdaFunctionAPI:
+    Type: AWS::Serverless::Function
+    DependsOn: storeFinderAPILambdaLogGroup
+    Properties:
+      FunctionName: !Sub '${AWS::StackName}-StoreFinder-API'
+      CodeUri: './storefinder-api/'
+      Description: 'Queries PostgreSQL database and finds nearest points'
+      MemorySize: 256
+      Timeout: 15
+      ReservedConcurrentExecutions: 50
+      Handler: app.lambda_handler
+      VpcConfig: 
+        SecurityGroupIds: 
+          - !Ref storeFinderLambdaSecurityGroup
+        SubnetIds: 
+          - !Ref storeFinderVPCPrivateSubnetOne
+          - !Ref storeFinderVPCPrivateSubnetTwo
+      Environment:
+        Variables:
+          LOCATION_ROUTE_CALCULATOR:
+            Fn::ImportValue: !Sub '${storeFinderCoreCloudFormationStackName}-StoreFinder-RouteCalculatorName'
+          AWS_ALLOWED_CORS_ORIGINS: !Join
+            - ''
+            - - 'http://localhost:5173,'
+              - 'http://127.0.0.1:5173,'
+              - 'http://localhost:5174,'
+              - 'http://127.0.0.1:5174,'
+              - Fn::ImportValue: !Sub '${storeFinderCoreCloudFormationStackName}-StoreFinder-Url'
+          RDS_TABLE_NAME: tbl_postoffices
+          SECRET_ID: !Ref storeFinderAuroraDBSecret
+          RDS_ENDPOINT: !GetAtt storeFinderAuroraInstance.Endpoint.Address
+      Runtime: python3.9
+      Policies:
+        - Version: 2012-10-17
+          Statement:
+            - Effect: Allow
+              Action:
+                - geo:CalculateRouteMatrix
+              Resource:
+                Fn::ImportValue: !Sub '${storeFinderCoreCloudFormationStackName}-StoreFinder-RouteCalculatorArn'
+            - Effect: 'Allow'
+              Action:
+                - 'logs:CreateLogGroup'
+              Resource: !Sub 'arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:*'
+            - Effect: 'Allow'
+              Action:
+                - 'logs:CreateLogStream'
+                - 'logs:PutLogEvents'
+              Resource: !Sub 'arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${AWS::StackName}-StoreFinder-API:*'
+        - VPCAccessPolicy: {}
+        - AWSSecretsManagerGetSecretValuePolicy:
+            SecretArn: !Ref storeFinderAuroraDBSecret
+  storeFinderAPIGateway:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: !Sub '${AWS::StackName}-StoreFinder-API'
+      Description: 'Store Finder API Gateway for API2'
+      EndpointConfiguration:
+        Types:
+          - REGIONAL
+  storeFinderAPIGatewayProxyResource:
+    Type: 'AWS::ApiGateway::Resource'
+    Properties:
+      RestApiId: !Ref storeFinderAPIGateway
+      ParentId: !GetAtt
+        - storeFinderAPIGateway
+        - RootResourceId
+      PathPart: 'stores'
+  storeFinderAPIGatewayProxyResourceNearest:
+    Type: 'AWS::ApiGateway::Resource'
+    Properties:
+      RestApiId: !Ref storeFinderAPIGateway
+      ParentId: !Ref storeFinderAPIGatewayProxyResource
+      PathPart: 'nearest'
+  storeFinderAPIGatewayMethodNearestPost:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      AuthorizationType: NONE
+      HttpMethod: POST
+      RequestParameters:
+        method.request.querystring.hash: 'true'
+      Integration:
+        CacheKeyParameters:
+          - 'method.request.querystring.hash'
+        RequestParameters:
+          integration.request.querystring.hash: 'method.request.querystring.hash'
+        IntegrationHttpMethod: POST
+        Type: AWS_PROXY
+        Uri: !Sub 'arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${storeFinderLambdaFunctionAPI.Arn}/invocations'
+      ResourceId: !Ref storeFinderAPIGatewayProxyResourceNearest
+      RestApiId: !Ref storeFinderAPIGateway
+  storeFinderAPIGatewayMethodNearestOptions:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      AuthorizationType: NONE
+      HttpMethod: OPTIONS
+      Integration:
+        IntegrationHttpMethod: POST
+        Type: AWS_PROXY
+        Uri: !Sub 'arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${storeFinderLambdaFunctionAPI.Arn}/invocations'
+      ResourceId: !Ref storeFinderAPIGatewayProxyResourceNearest
+      RestApiId: !Ref storeFinderAPIGateway
+  storeFinderAPIGatewayDeployment:
+    Type: AWS::ApiGateway::Deployment
+    DependsOn:
+      - storeFinderAPIGatewayMethodNearestPost
+    Properties:
+      RestApiId: !Ref storeFinderAPIGateway
+  storeFinderAPIGatewayStage:
+    Type: AWS::ApiGateway::Stage
+    Properties:
+      StageName: 'prod'
+      RestApiId: !Ref storeFinderAPIGateway
+      DeploymentId: !Ref storeFinderAPIGatewayDeployment
+      CacheClusterEnabled: 'true'
+      CacheClusterSize: '0.5'
+      MethodSettings:
+        - CachingEnabled: 'true'
+          CacheDataEncrypted: 'true'
+          ResourcePath: '/stores/nearest'
+          HttpMethod: POST
+  storeFinderLambdaApiGatewayInvokeNearestPost:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: 'lambda:InvokeFunction'
+      FunctionName: !Ref storeFinderLambdaFunctionAPI
+      Principal: 'apigateway.amazonaws.com'
+      SourceArn: !Sub 'arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${storeFinderAPIGateway}/*/POST/stores/nearest'
+  storeFinderLambdaApiGatewayInvokeNearestOptions:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: 'lambda:InvokeFunction'
+      FunctionName: !Ref storeFinderLambdaFunctionAPI
+      Principal: 'apigateway.amazonaws.com'
+      SourceArn: !Sub 'arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${storeFinderAPIGateway}/*/OPTIONS/stores/nearest'
+  storeFinderLambdaDataGenLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${AWS::StackName}-StoreFinder-DataGeneration'
+      RetentionInDays: 7
+  storeFinderLambdaFunctionDataGen:
+    Type: AWS::Serverless::Function
+    DependsOn: storeFinderLambdaDataGenLogGroup
+    Properties:
+      FunctionName: !Sub '${AWS::StackName}-StoreFinder-DataGeneration'
+      CodeUri: './storefinder-datageneration/'
+      Description: 'Populates RDS Aurora table with imported data from S3 bucket'
+      MemorySize: 256
+      Timeout: 240
+      ReservedConcurrentExecutions: 1
+      Handler: app.lambda_handler
+      VpcConfig: 
+        SecurityGroupIds: 
+          - !Ref storeFinderLambdaSecurityGroup
+        SubnetIds: 
+          - !Ref storeFinderVPCPrivateSubnetOne
+          - !Ref storeFinderVPCPrivateSubnetTwo
+      Environment:
+        Variables:
+          RDS_TABLE_NAME: tbl_postoffices
+          SECRET_ID: !Ref storeFinderAuroraDBSecret
+          RDS_ENDPOINT: !GetAtt storeFinderAuroraInstance.Endpoint.Address
+      Runtime: python3.9
+      Policies:
+        - S3ReadPolicy:
+            BucketName: !Sub "${storeFinderDataImportS3BucketName}"
+        - VPCAccessPolicy: {} 
+        - AWSSecretsManagerGetSecretValuePolicy:
+            SecretArn: !Ref storeFinderAuroraDBSecret
+        - Version: 2012-10-17
+          Statement:
+            - Effect: 'Allow'
+              Action:
+                - 'logs:CreateLogGroup'
+              Resource: !Sub 'arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:*'
+            - Effect: 'Allow'
+              Action:
+                - 'logs:CreateLogStream'
+                - 'logs:PutLogEvents'
+              Resource: !Sub 'arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${AWS::StackName}-StoreFinder-DataGeneration:*'
+      Events:
+        FileUpload:
+          Type: S3
+          Properties:
+            Bucket: !Ref storeFindersDataImport3Bucket
+            Events: s3:ObjectCreated:*
+            Filter: 
+              S3Key:
+                Rules:
+                  - Name: suffix
+                    Value: '.csv'
+
+Outputs:
+  storeFinderAPIGatewayEndpoint:
+    Value: !Sub 'https://${storeFinderAPIGateway}.execute-api.${AWS::Region}.amazonaws.com/${storeFinderAPIGatewayStage}/stores'
+    Description: 'API endpoint for the Store Finder backend. Call this from your frontend application.'
+  storeFinderDataGenerationResult:
+    Value: !Sub 's3://${storeFindersDataImport3Bucket}'
+    Description: 'S3 bucket location for data file CSV.'

@@ -1,0 +1,277 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: 'CloudFormation stack to provision the Store Finder API pattern 1'
+
+Globals:
+  Function:
+    Runtime: python3.9
+    MemorySize: 512
+    Timeout: 15
+
+Parameters:
+  storeFinderCoreCloudFormationStackName:
+    Description: Provide the name of the previously deployed CloudFormation stack for the store finder core infrastructure.
+    Type: String
+
+Resources:
+  storeFinderDynamoDBTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: 'PAY_PER_REQUEST'
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: N
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      SSESpecification:
+        SSEEnabled: true
+  storeFinderAPILambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: 'Allow'
+            Principal:
+              Service:
+                - 'lambda.amazonaws.com'
+            Action:
+              - 'sts:AssumeRole'
+      Path: '/'
+      Policies:
+        - PolicyName: !Sub '${AWS::StackName}-StoreFinder-APILambdaExecutionRolePolicy'
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: 'Allow'
+                Action:
+                  - 'logs:CreateLogGroup'
+                Resource: !Sub 'arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:*'
+              - Effect: 'Allow'
+                Action:
+                  - 'logs:CreateLogStream'
+                  - 'logs:PutLogEvents'
+                Resource: !Sub 'arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${AWS::StackName}-StoreFinder-API:*'
+              - Effect: 'Allow'
+                Action:
+                  - 'dynamodb:GetItem'
+                  - 'dynamodb:Scan'
+                  - 'dynamodb:Query'
+                Resource: !GetAtt storeFinderDynamoDBTable.Arn
+              - Effect: 'Allow'
+                Action:
+                  - 'geo:CalculateRouteMatrix'
+                Resource:
+                  Fn::ImportValue: !Sub '${storeFinderCoreCloudFormationStackName}-StoreFinder-RouteCalculatorArn'
+  storeFinderAPILambdaFunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${AWS::StackName}-StoreFinder-API'
+      RetentionInDays: 7
+  storeFinderAPILambdaFunction:
+    Type: AWS::Serverless::Function
+    DependsOn: storeFinderAPILambdaFunctionLogGroup
+    Properties:
+      FunctionName: !Sub '${AWS::StackName}-StoreFinder-API'
+      Description: 'Lambda function for Store Finder API'
+      Architectures:
+        - arm64
+      Runtime: python3.9
+      Handler: 'app.lambda_handler'
+      CodeUri: './storefinder-api/'
+      MemorySize: 256
+      Timeout: 10
+      ReservedConcurrentExecutions: 50
+      Role: !GetAtt storeFinderAPILambdaExecutionRole.Arn
+      Environment:
+        Variables:
+          AMAZON_DYNAMODB_TABLE: !Ref storeFinderDynamoDBTable
+          AMAZON_LOCATION_SERVICE_ROUTE_CALCULATOR:
+            Fn::ImportValue: !Sub '${storeFinderCoreCloudFormationStackName}-StoreFinder-RouteCalculatorName'
+          AWS_ALLOWED_CORS_ORIGINS: !Join
+            - ''
+            - - 'http://localhost:5173,'
+              - 'http://127.0.0.1:5173,'
+              - 'http://localhost:5174,'
+              - 'http://127.0.0.1:5174,'
+              - Fn::ImportValue: !Sub '${storeFinderCoreCloudFormationStackName}-StoreFinder-Url'
+  storeFinderDataGenerationLambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: 'Allow'
+            Principal:
+              Service:
+                - 'lambda.amazonaws.com'
+            Action:
+              - 'sts:AssumeRole'
+      Path: '/'
+      Policies:
+        - PolicyName: !Sub '${AWS::StackName}-StoreFinder-DataGenerationLambdaExecutionRolePolicy'
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: 'Allow'
+                Action:
+                  - 'logs:CreateLogGroup'
+                Resource: !Sub 'arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:*'
+              - Effect: 'Allow'
+                Action:
+                  - 'logs:CreateLogStream'
+                  - 'logs:PutLogEvents'
+                Resource: !Sub 'arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${AWS::StackName}-StoreFinder-DataGeneration:*'
+              - Effect: 'Allow'
+                Action:
+                  - 'dynamodb:PutItem'
+                Resource: !GetAtt storeFinderDynamoDBTable.Arn
+  storeFinderDataGenerationLambdaFunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${AWS::StackName}-StoreFinder-DataGeneration'
+      RetentionInDays: 7
+  storeFinderDataGenerationLambdaFunction:
+    Type: AWS::Serverless::Function
+    DependsOn: storeFinderDataGenerationLambdaFunctionLogGroup
+    Properties:
+      FunctionName: !Sub '${AWS::StackName}-StoreFinder-DataGeneration'
+      Description: 'Lambda function for Store Finder data generation'
+      Architectures:
+        - arm64
+      Runtime: python3.9
+      Handler: 'app.lambda_handler'
+      CodeUri: './storefinder-datageneration/'
+      MemorySize: 256
+      Timeout: 30
+      ReservedConcurrentExecutions: 1
+      Role: !GetAtt storeFinderDataGenerationLambdaExecutionRole.Arn
+      Environment:
+        Variables:
+          AMAZON_DYNAMODB_TABLE: !Ref storeFinderDynamoDBTable
+  storeFinderAPIGateway:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: !Sub '${AWS::StackName}-StoreFinder-API'
+      Description: 'Store Finder API Gateway for API1'
+      EndpointConfiguration:
+        Types:
+          - REGIONAL
+  storeFinderAPIGatewayProxyResource:
+    Type: 'AWS::ApiGateway::Resource'
+    Properties:
+      RestApiId: !Ref storeFinderAPIGateway
+      ParentId: !GetAtt
+        - storeFinderAPIGateway
+        - RootResourceId
+      PathPart: 'stores'
+  storeFinderAPIGatewayProxyResourceNearest:
+    Type: 'AWS::ApiGateway::Resource'
+    Properties:
+      RestApiId: !Ref storeFinderAPIGateway
+      ParentId: !Ref storeFinderAPIGatewayProxyResource
+      PathPart: 'nearest'
+  storeFinderAPIGatewayMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      AuthorizationType: NONE
+      HttpMethod: GET
+      Integration:
+        IntegrationHttpMethod: POST
+        Type: AWS_PROXY
+        Uri: !Sub 'arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${storeFinderAPILambdaFunction.Arn}/invocations'
+      ResourceId: !Ref storeFinderAPIGatewayProxyResource
+      RestApiId: !Ref storeFinderAPIGateway
+  storeFinderAPIGatewayMethodNearestPost:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      AuthorizationType: NONE
+      HttpMethod: POST
+      RequestParameters:
+        method.request.querystring.hash: 'true'
+      Integration:
+        CacheKeyParameters:
+          - 'method.request.querystring.hash'
+        RequestParameters:
+          integration.request.querystring.hash: 'method.request.querystring.hash'
+        IntegrationHttpMethod: POST
+        Type: AWS_PROXY
+        Uri: !Sub 'arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${storeFinderAPILambdaFunction.Arn}/invocations'
+      ResourceId: !Ref storeFinderAPIGatewayProxyResourceNearest
+      RestApiId: !Ref storeFinderAPIGateway
+  storeFinderAPIGatewayMethodNearestOptions:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      AuthorizationType: NONE
+      HttpMethod: OPTIONS
+      Integration:
+        IntegrationHttpMethod: POST
+        Type: AWS_PROXY
+        Uri: !Sub 'arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${storeFinderAPILambdaFunction.Arn}/invocations'
+      ResourceId: !Ref storeFinderAPIGatewayProxyResourceNearest
+      RestApiId: !Ref storeFinderAPIGateway
+  storeFinderAPIGatewayDeployment:
+    Type: AWS::ApiGateway::Deployment
+    DependsOn:
+      - storeFinderAPIGatewayMethod
+    Properties:
+      RestApiId: !Ref storeFinderAPIGateway
+  storeFinderAPIGatewayStage:
+    Type: AWS::ApiGateway::Stage
+    Properties:
+      StageName: 'prod'
+      RestApiId: !Ref storeFinderAPIGateway
+      DeploymentId: !Ref storeFinderAPIGatewayDeployment
+      CacheClusterEnabled: 'true'
+      CacheClusterSize: '0.5'
+      MethodSettings:
+        - CachingEnabled: 'true'
+          CacheDataEncrypted: 'true'
+          ResourcePath: '/stores'
+          HttpMethod: GET
+        - CachingEnabled: 'true'
+          CacheDataEncrypted: 'true'
+          ResourcePath: '/stores/nearest'
+          HttpMethod: POST
+  storeFinderLambdaApiGatewayInvoke:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: 'lambda:InvokeFunction'
+      FunctionName: !Ref storeFinderAPILambdaFunction
+      Principal: 'apigateway.amazonaws.com'
+      SourceArn: !Sub 'arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${storeFinderAPIGateway}/*/GET/stores'
+  storeFinderLambdaApiGatewayInvokeNearestPost:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: 'lambda:InvokeFunction'
+      FunctionName: !Ref storeFinderAPILambdaFunction
+      Principal: 'apigateway.amazonaws.com'
+      SourceArn: !Sub 'arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${storeFinderAPIGateway}/*/POST/stores/nearest'
+  storeFinderLambdaApiGatewayInvokeNearestOptions:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: 'lambda:InvokeFunction'
+      FunctionName: !Ref storeFinderAPILambdaFunction
+      Principal: 'apigateway.amazonaws.com'
+      SourceArn: !Sub 'arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${storeFinderAPIGateway}/*/OPTIONS/stores/nearest'
+  storeFinderDataGeneration:
+    Type: AWS::CloudFormation::CustomResource
+    DependsOn:
+    - storeFinderDynamoDBTable
+    Version: '1.0'
+    Properties:
+      ServiceToken: !GetAtt storeFinderDataGenerationLambdaFunction.Arn
+
+Outputs:
+  storeFinderAPIGatewayEndpoint:
+    Description: 'API endpoint for the Store Finder backend. Call this from your frontend application.'
+    Value: !Sub 'https://${storeFinderAPIGateway}.execute-api.${AWS::Region}.amazonaws.com/${storeFinderAPIGatewayStage}/stores'
+  storeFinderDataGenerationResult:
+    Value: !GetAtt
+      - storeFinderDataGeneration
+      - message
+    Description: 'Message from data generator. This should confirm that data insertion has been successful.'

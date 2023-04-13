@@ -1,0 +1,29 @@
+{
+  "name": "amazon-location-service-find-my-nearest-stores",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@maplibre/maplibre-gl-geocoder": "^1.5.0",
+    "aws-amplify": "^5.0.14",
+    "axios": "^1.3.4",
+    "maplibre-gl": "^1.15.3",
+    "maplibre-gl-js-amplify": "^3.0.2",
+    "primeicons": "^6.0.1",
+    "primevue": "^3.23.0",
+    "vue": "^3.2.45",
+    "vue-axios": "^3.5.2",
+    "vue-resource": "^1.5.3"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^4.0.0",
+    "eslint": "^8.38.0",
+    "eslint-plugin-vue": "^9.10.0",
+    "sass": "^1.32.12",
+    "vite": "^4.0.0"
+  }
+}
