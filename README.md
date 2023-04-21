@@ -60,93 +60,94 @@ sam build
 ```
 sam deploy --guided
 ```
-When prompted enter the details chosen for your environment:
+When prompted enter the details chosen for your environment (you can keep the remainder as defaults):
 ```
 Setting default arguments for 'sam deploy'
 =========================================
-Stack Name [sam-app]: <Your "core" stack name>
+Stack Name [sam-app]: <Your Store Finder "Core" Amazon CloudFormation stack name>
 AWS Region [eu-west-1]: <Your AWS Region>                                  
-Parameter storeFinderFrontendS3BucketName []: <Your unique bucket name>
+Parameter storeFinderFrontendS3BucketName []: <Your unique Amazon S3 bucket name for front-end files hosting>
 ```
 3. Confirm that the `Successfully created/updated stack` message is shown. Populate the missing Amazon Location Service and Amazon Cognito details in the `.env.local` file with details from the outputs of the deployed Amazon CloudFormation stack.
 ```
 VITE_AWS_REGION=<You AWS Region>
-VITE_AMAZON_COGNITO_IDENTITY_POOL_ID=<storeFinderAmazonCognitoIdentityPoolName from Amazon CloudFormation Stack output>
-VITE_AMAZON_LOCATION_SERVICE_MAP=<storeFinderAmazonLocationServiceMapName from Amazon CloudFormation Stack output>
-VITE_AMAZON_LOCATION_SERVICE_PLACES_INDEX=<storeFinderAmazonLocationServicePlaceIndexName from Amazon CloudFormation Stack output>
+VITE_AMAZON_COGNITO_IDENTITY_POOL_ID=<storeFinderAmazonCognitoIdentityPoolName from the Store Finder "Core" Amazon CloudFormation stack output>
+VITE_AMAZON_LOCATION_SERVICE_MAP=<storeFinderAmazonLocationServiceMapName from the Store Finder "Core" Amazon CloudFormation stack output>
+VITE_AMAZON_LOCATION_SERVICE_PLACES_INDEX=<storeFinderAmazonLocationServicePlaceIndexName from the Store Finder "Core" Amazon CloudFormation stack output>
 ```
 
 ### Store Finder - API Pattern 1
 
-1. Navigate to the `sam/api-pattern1` directory on your local machine. Run `sam build` to build the application ready for deployment.
+1. Navigate to the `sam/api-pattern1` directory on your local machine. Run `sam build` to build the application ready for deployment. Confirm that the `Build Succeeded` message is shown before continuing.
 ```
 cd ../api-pattern1
 sam build
 ```
-Confirm that the `Build Succeeded` message is shown before continuing.
 2. Run `sam deploy --guided`, providing your environment-specific parameters.
 ```
 sam deploy --guided
 ```
-When prompted enter the details chosen for your environment:
+When prompted enter the details chosen for your environment (you can keep the remainder as defaults):
 ```
 Setting default arguments for 'sam deploy'
 =========================================
-Stack Name [sam-app]: <Your API1 stack name>
+Stack Name [sam-app]: <Your Store Finder "API1" Amazon CloudFormation stack name>
 AWS Region [eu-west-1]: <Your AWS Region>
-Parameter storeFinderCoreCloudFormationStackName []: <Name of the Store Finder "Core" stack>
+Parameter storeFinderCoreCloudFormationStackName []: <Name of the Store Finder "Core" Amazon CloudFormation stack name>
 ```
 3. Confirm that the `Successfully created/updated stack` message is shown. Populate the missing API1 endpoint value in the `.env.local` file with details from the outputs of the deployed Amazon CloudFormation stack.
 ```
-VITE_APIGATEWAY_ENDPOINT_API1=<storeFinderAPIGatewayEndpoint from Amazon CloudFormation Stack output>
+VITE_APIGATEWAY_ENDPOINT_API1=<storeFinderAPIGatewayEndpoint from the Store Finder "API1" Amazon CloudFormation stack output>
 ```
-> The Pattern 1 AWS SAM template houses an [AWS Lambda custom resource](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/template-custom-resources.html) that will automatically load the stores data from the `stores.json` file.
+> The Pattern 1 AWS SAM template houses an [AWS Lambda custom resource](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/template-custom-resources.html) that will automatically load the stores data from the `stores.json` file. No further action is required, and API1 is now ready.
 
 ### Store Finder - API Pattern 2
 
-1. Navigate to the `sam/api-pattern2` directory on your local machine. Run `sam build` to build the application ready for deployment.
+1. Navigate to the `sam/api-pattern2` directory on your local machine. Run `sam build` to build the application ready for deployment. Confirm that the `Build Succeeded` message is shown before continuing.
 ```
 cd ../api-pattern2
 sam build
 ```
-Confirm that the `Build Succeeded` message is shown before continuing.
 2. Run `sam deploy --guided`, providing your environment-specific parameters.
 ```
 sam deploy --guided
 ```
-When prompted enter the details chosen for your environment:
+When prompted enter the details chosen for your environment (you can keep the remainder as defaults):
 ```
 Setting default arguments for 'sam deploy'
 =========================================
-Stack Name [sam-app]: <Your API2 stack name>
+Stack Name [sam-app]: <Your Store Finder "API2" Amazon CloudFormation stack name>
 AWS Region [eu-west-1]: <Your AWS Region>
-Parameter storeFinderCoreCloudFormationStackName []: <Name of the Store Finder "Core" stack>
+Parameter storeFinderCoreCloudFormationStackName []: <Name of the Store Finder "Core" Amazon CloudFormation stack>
 Parameter storeFinderAuroraDBMasterUserName [admin_user] <Name of the PostgreSQL admin user account>: 
-Parameter storeFinderDataImportS3BucketName []: <S3 bucket name used for the data import>
+Parameter storeFinderDataImportS3BucketName []: <Amazon S3 bucket name used for the data import>
 ```
 3. Confirm that the `Successfully created/updated stack` message is shown. Populate the missing API2 endpoint value in the `.env.local` file with details from the outputs of the deployed Amazon CloudFormation stack.
 ```
-VITE_APIGATEWAY_ENDPOINT_API2=<storeFinderAPIGatewayEndpoint from Amazon CloudFormation Stack output>
+VITE_APIGATEWAY_ENDPOINT_API2=<storeFinderAPIGatewayEndpoint from Store Finder "API2" Amazon CloudFormation Stack output>
 ```
-> The Pattern 2 requires a CSV file to be uploded to the newly created Amazon S3 bucket. This will trigger an AWS Lambda function which will automatically inserts its contents into the PostgreSQL database.
+> Pattern 2 requires a CSV file to be manually uploded to the newly created Amazon S3 bucket. This will trigger an AWS Lambda function which will automatically insert the records into the PostgreSQL database.
 4. Download, unzip and upload the [us-post-offices.csv](https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/NUKCNA) file to the Amazon S3 API2 data assets bucket. The `aws s3 cp` command can be used to do this from the folder in which it was downloaded and unzipped.
 ```
-aws s3 cp us-post-offices.csv s3://<storeFinderDataImport3Bucket from Amazon CloudFormation Stack output>`
+aws s3 cp us-post-offices.csv s3://<storeFinderDataImport3Bucket from the Store Finder "API2" Amazon CloudFormation Stack output>`
 ```
 
 ### Build and deploy the Vue.js application
 
-1. Confirm that all the missing details have been populated in the `.env.local` file, then run `npm run build` in the root of the folder structure.
+1. Confirm that all the missing details have now been populated in the `.env.local` file, then run `npm run build` in the root of the folder structure.
 ```
 npm run build
 ```
-2. Confirm that the deployment files have been created in the `/dist` directory.
+2. Confirm that the deployment files have been successfully created in the `/dist` directory.
 ```
 cd dist
 ls
 ```
-3. Upload the files in the `dist` folder to the Amazon S3 core hosting bucket. The `aws s3 cp` command can be used.
+3. Upload the files in the `dist` folder to the Amazon S3 core hosting bucket.
 ```
 aws s3 cp . s3://<storeFinderFrontendS3BucketUploadLocation from Store Finder "Core" Amazon CloudFormation Stack output> --recursive
 ```
-If you make subsequent changes to the `.env.local` file, you will need to rebuild the Vue.js application, upload the results and invalidate the Amazon Route 53 distribution cache.
+> Note that if you make subsequent changes to the `.env.local` file, you will need to rebuild the Vue.js application, upload the results and invalidate the Amazon Route 53 distribution cache.
+ 
+## Accessing the site
+You can now access the site by visiting the URL of the Amazon CloudFormation distribution. You can find out what this is by checking `storeFinderAmazonCloudFrontDistributionUrl` from the output of the Store Finder "Core" Amazon CloudFormation stack.
