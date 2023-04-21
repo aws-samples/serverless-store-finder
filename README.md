@@ -151,3 +151,5 @@ aws s3 cp . s3://<storeFinderFrontendS3BucketUploadLocation from Store Finder "C
  
 ## Accessing the site
 You can now access the site by visiting the URL of the Amazon CloudFormation distribution. You can find out what this is by checking `storeFinderAmazonCloudFrontDistributionUrl` from the output of the Store Finder "Core" Amazon CloudFormation stack.
+
+![Store Finder screenshot](store_finder_screenshot.png)
