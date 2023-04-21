@@ -39,7 +39,7 @@ git clone https://github.com/aws-samples/serverless-store-finder
 cd serverless-store-finder
 npm install
 ```
-4. Finally, copy the `.env.local.template` file and rename to`.env.locale` so that it is ready to be populated by the outputs from the later AWS SAM template deployments.
+4. Finally, copy the `.env.local.template` file and rename it to`.env.local` so that it is ready to be populated by the outputs from the later AWS SAM template deployments.
 ```
 cp .env.local.template .env.local
 ```
@@ -56,7 +56,7 @@ The "Store Finder - Core" AWS SAM template will deploy the shared infrastructure
 cd sam/core
 sam build
 ```
-Confirm that the `Build Succeeded` message is shown before continuing.
+  Confirm that the `Build Succeeded` message is shown before continuing.
 2. Run `sam deploy --guided`, selecting your environment-specific options when prompted. 
 ```
 sam deploy --guided
