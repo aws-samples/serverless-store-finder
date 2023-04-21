@@ -220,14 +220,6 @@ Outputs:
   storeFinderAmazonLocationServicePlaceIndexName:
     Value: !Ref storeFinderAmazonLocationServicePlaceIndex
     Description: 'Amazon Location Service place index name. Use this in your frontend application.'
-  storeFinderAmazonCloudFrontDistributionUrl:
-    Value: !Sub 'https://${storeFinderCloudFrontDistribution.DomainName}'
-    Description: 'URL to use in your browser to access the application.'
-    Export:
-      Name: !Sub '${AWS::StackName}-StoreFinder-Url'
-  storeFinderFrontendS3BucketUploadLocation:
-    Value: !Sub 's3://${storeFinderFrontendS3Bucket}'
-    Description: 'Upload your frontend files here for hosting.'
   storeFinderAmazonLocationServiceRouteCalculatorArn:
     Value: !GetAtt storeFinderAmazonLocationServiceRouteCalculator.Arn
     Description: 'Route calculator resource ARN.'
@@ -238,5 +230,14 @@ Outputs:
     Description: 'Route calculator resource Name.'
     Export:
       Name: !Sub '${AWS::StackName}-StoreFinder-RouteCalculatorName'
+  storeFinderAmazonCloudFrontDistributionUrl:
+    Value: !Sub 'https://${storeFinderCloudFrontDistribution.DomainName}'
+    Description: 'URL to use in your browser to access the application.'
+    Export:
+      Name: !Sub '${AWS::StackName}-StoreFinder-Url'
+  storeFinderFrontendS3BucketUploadLocation:
+    Value: !Sub 's3://${storeFinderFrontendS3Bucket}'
+    Description: 'Upload your frontend files here for hosting.'
+
 
 

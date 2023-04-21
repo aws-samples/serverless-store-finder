@@ -237,7 +237,7 @@ Resources:
       DBInstanceClass: db.serverless
       DBClusterIdentifier: !Ref storeFinderAuroraCluster
       PubliclyAccessible: 'false'
-  storeFindersDataImport3Bucket:
+  storeFinderDataImport3Bucket:
     Type: AWS::S3::Bucket
     Properties:
       BucketName: !Ref storeFinderDataImportS3BucketName
@@ -434,7 +434,7 @@ Resources:
         FileUpload:
           Type: S3
           Properties:
-            Bucket: !Ref storeFindersDataImport3Bucket
+            Bucket: !Ref storeFinderDataImport3Bucket
             Events: s3:ObjectCreated:*
             Filter: 
               S3Key:
@@ -446,6 +446,6 @@ Outputs:
   storeFinderAPIGatewayEndpoint:
     Value: !Sub 'https://${storeFinderAPIGateway}.execute-api.${AWS::Region}.amazonaws.com/${storeFinderAPIGatewayStage}/stores'
     Description: 'API endpoint for the Store Finder backend. Call this from your frontend application.'
-  storeFinderDataGenerationResult:
-    Value: !Sub 's3://${storeFindersDataImport3Bucket}'
+  storeFinderDataImport3Bucket:
+    Value: !Sub 's3://${storeFinderDataImport3Bucket}'
     Description: 'S3 bucket location for data file CSV.'
