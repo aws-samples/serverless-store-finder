@@ -51,12 +51,11 @@ You are now ready to deploy the AWS SAM templates.
 
 The "Store Finder - Core" AWS SAM template will deploy the shared infrastructure resources required by both patterns, including the Amazon S3 bucket and Amazon CloudFront distribution for front-end hosting, Amazon Location Service map, place index and route calculator resources, and an Amazon Cognito user pool. 
 
-1. Navigate to the `sam/core` directory on your local machine. Run `sam build` to build the application ready for deployment. 
+1. Navigate to the `sam/core` directory on your local machine. Run `sam build` to build the application ready for deployment. Confirm that the `Build Succeeded` message is shown before continuing. 
 ```
 cd sam/core
 sam build
 ```
-  Confirm that the `Build Succeeded` message is shown before continuing.
 2. Run `sam deploy --guided`, selecting your environment-specific options when prompted. 
 ```
 sam deploy --guided
