@@ -131,7 +131,7 @@ Parameter storeFinderDataImportS3BucketName []: <Amazon S3 bucket name used for 
 VITE_APIGATEWAY_ENDPOINT_API2=<storeFinderAPIGatewayEndpoint from Store Finder "API2" Amazon CloudFormation Stack output>
 ```
 > Pattern 2 requires a CSV file to be manually uploded to the newly created Amazon S3 bucket. This will trigger an AWS Lambda function which will automatically insert the records into the PostgreSQL database.
-4. Download, unzip and upload the [us-post-offices.csv](https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/NUKCNA) file to the Amazon S3 API2 data assets bucket. The `aws s3 cp` command can be used to do this from the folder in which it was downloaded and unzipped.
+4. Download, unzip and upload the [us-post-offices.csv](https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/NUKCNA) file (housed in the downloaded zip file) to the Amazon S3 API2 data assets bucket. The `aws s3 cp` command can be used to do this from the folder in which it was downloaded and unzipped.
 ```
 aws s3 cp us-post-offices.csv s3://<storeFinderDataImport3Bucket from the Store Finder "API2" Amazon CloudFormation Stack output>`
 ```
@@ -157,3 +157,22 @@ aws s3 cp . s3://<storeFinderFrontendS3BucketUploadLocation from Store Finder "C
 You can now access the site by visiting the URL of the Amazon CloudFormation distribution. You can find out what this is by checking `storeFinderAmazonCloudFrontDistributionUrl` from the output of the Store Finder "Core" Amazon CloudFormation stack.
 
 ![Store Finder screenshot](store_finder_screenshot.png)
+
+## Using your own data sets
+
+### API Pattern 1
+
+During the deployment of the AWS SAM template for API 1, an AWS Lambda custom resource is invoked by the Amazon CloudFormation stack provisioning process. This `storefinder-datageneration` AWS Lambda function loads store data from the `stores.json` file in `sam/api-pattern1/storefinder-datageneration`.
+
+If you would like to use your own data, update this file before the AWS SAM template deployment. The summary of the load are displayed in both the `storeFinderDataGenerationResult` output of the Amazon CloudFormation stack, and the Amazon CloudWatch Logs log stream for the AWS Lambda function.
+
+### API Pattern 2
+
+Population of the data for API2 takes place by uploading a CSV file to the Amazon S3 bucket designated for the data asset. The demo uses the [us-post-offices.csv](https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/NUKCNA) file housed in the downloaded zip file.
+
+Any CSV file conforming to the same standard can be uploaded to the Amazon S3 bucket to populate the PostgreSQL database.
+
+
+
+
+
