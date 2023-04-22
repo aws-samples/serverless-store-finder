@@ -158,6 +158,8 @@ You can now access the site by visiting the URL of the Amazon CloudFormation dis
 
 ![Store Finder screenshot](store_finder_screenshot.png)
 
+With the demo, toggling the drop-down between "United States" and "United Kingdom" switches the back-end API being invoked between API 1 (Pattern 1) and API 2 (Pattern 2).
+
 ## Using your own data sets
 
 ### API Pattern 1
