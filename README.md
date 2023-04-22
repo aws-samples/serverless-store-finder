@@ -162,7 +162,7 @@ You can now access the site by visiting the URL of the Amazon CloudFormation dis
 
 ### API Pattern 1
 
-During the deployment of the AWS SAM template for API 1, an AWS Lambda custom resource is invoked by the Amazon CloudFormation stack provisioning process. This `storefinder-datageneration` AWS Lambda function loads store data from the `stores.json` file in `sam/api-pattern1/storefinder-datageneration`.
+During the deployment of the AWS SAM template for API 1, an AWS Lambda custom resource is invoked by the Amazon CloudFormation stack provisioning process. This `storefinder-datageneration` AWS Lambda function loads store data from the `stores.json` file found in `sam/api-pattern1/storefinder-datageneration`.
 
 If you would like to use your own data, update this file before the AWS SAM template deployment. The summary of the load are displayed in both the `storeFinderDataGenerationResult` output of the Amazon CloudFormation stack, and the Amazon CloudWatch Logs log stream for the AWS Lambda function.
 
@@ -170,7 +170,7 @@ If you would like to use your own data, update this file before the AWS SAM temp
 
 Population of the data for API2 takes place by uploading a CSV file to the Amazon S3 bucket designated for the data asset. The demo uses the [us-post-offices.csv](https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/NUKCNA) file housed in the downloaded zip file.
 
-Any CSV file conforming to the same standard can be uploaded to the Amazon S3 bucket to populate the PostgreSQL database.
+Any CSV file conforming to the same data structure can be uploaded to the Amazon S3 bucket to populate the PostgreSQL database. The Amazon CloudWatch Logs log stream for the data generation AWS Lambda function will display its progress.
 
 
 
