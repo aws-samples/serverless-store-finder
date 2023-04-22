@@ -78,6 +78,8 @@ VITE_AMAZON_LOCATION_SERVICE_PLACES_INDEX=<storeFinderAmazonLocationServicePlace
 
 ### Store Finder - API Pattern 1
 
+The "Store Finder - API Pattern 1" AWS SAM template will deploy the back-end API infrastructure and code required by Pattern 1, including the Amazon API Gateway, AWS Lambda functions, and Amazon DynamoDB table. This API is fully functional itself and is not dependent on API Pattern 2.
+
 1. Navigate to the `sam/api-pattern1` directory on your local machine. Run `sam build` to build the application ready for deployment. Confirm that the `Build Succeeded` message is shown before continuing.
 ```
 cd ../api-pattern1
@@ -102,6 +104,8 @@ VITE_APIGATEWAY_ENDPOINT_API1=<storeFinderAPIGatewayEndpoint from the Store Find
 > The Pattern 1 AWS SAM template houses an [AWS Lambda custom resource](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/template-custom-resources.html) that will automatically load the stores data from the `stores.json` file. No further action is required, and API1 is now ready.
 
 ### Store Finder - API Pattern 2
+
+The "Store Finder - API Pattern 2" AWS SAM template will deploy the back-end API infrastructure and code required by Pattern 2, including the Amazon API Gateway, AWS Lambda functions, and Amazon Aurora Serverless V2 PostgreSQL database. This API is fully functional itself and is not dependent on API Pattern 1.
 
 1. Navigate to the `sam/api-pattern2` directory on your local machine. Run `sam build` to build the application ready for deployment. Confirm that the `Build Succeeded` message is shown before continuing.
 ```
