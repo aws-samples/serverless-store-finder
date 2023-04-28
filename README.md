@@ -152,6 +152,10 @@ ls
 aws s3 cp . s3://<storeFinderFrontendS3BucketUploadLocation from Store Finder "Core" Amazon CloudFormation Stack output> --recursive
 ```
 > Note that if you make subsequent changes to the `.env.local` file, you will need to rebuild the Vue.js application, upload the results and invalidate the Amazon Route 53 distribution cache.
+
+```
+aws cloudfront create-invalidation --distribution-id <Amazon CloudFront distribution ID> --paths "/*"
+```
  
 ## Accessing the site
 You can now access the site by visiting the URL of the Amazon CloudFormation distribution. You can find out what this is by checking `storeFinderAmazonCloudFrontDistributionUrl` from the output of the Store Finder "Core" Amazon CloudFormation stack.
