@@ -8,6 +8,8 @@ import boto3
 AWS_REGION = os.environ["AWS_REGION"]
 AMAZON_DYNAMODB_TABLE = os.environ["AMAZON_DYNAMODB_TABLE"]
 AMAZON_LOCATION_SERVICE_ROUTE_CALCULATOR = os.environ["AMAZON_LOCATION_SERVICE_ROUTE_CALCULATOR"]
+# Route matrix calculations are batched to take into consideration API limits -
+# https://docs.aws.amazon.com/location/latest/developerguide/calculate-route-matrix.html#matrix-routing-longer-routes
 AMAZON_LOCATION_SERVICE_MATRIX_ROUTING_BATCH_SIZE = 10
 AWS_ALLOWED_CORS_ORIGINS = os.environ["AWS_ALLOWED_CORS_ORIGINS"].split(",")
 # DynamoDB connectivity

@@ -97,20 +97,20 @@ Resources:
     Type: AWS::Location::Map
     Properties:
       Configuration:
-        Style: 'VectorEsriTopographic'
+        Style: 'VectorHereExplore'
       Description: !Sub '${AWS::StackName} StoreFinder Map'
       MapName: !Sub '${AWS::StackName}-StoreFinder-Map'
   storeFinderAmazonLocationServicePlaceIndex:
     Type: AWS::Location::PlaceIndex
     Properties:
-      DataSource: 'Esri'
+      DataSource: 'Here'
       Description: !Sub '${AWS::StackName} StoreFinder Place Index'
       IndexName: !Sub '${AWS::StackName}-StoreFinder-PlaceIndex'
   storeFinderAmazonLocationServiceRouteCalculator:
     Type: AWS::Location::RouteCalculator
     Properties:
       CalculatorName: !Sub '${AWS::StackName}-StoreFinder-RouteCalculator'
-      DataSource: 'Esri'
+      DataSource: 'Here'
       Description: !Sub '${AWS::StackName} StoreFinder Route Calculator'
   storeFinderAmazonCognitoIdentityPool:
     Type: AWS::Cognito::IdentityPool
