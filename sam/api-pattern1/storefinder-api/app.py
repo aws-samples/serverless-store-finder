@@ -78,9 +78,9 @@ def lambda_handler(event, context):
                     response_body = [
                         str(error.response["Error"]) +
                         " " +
-                        """Check Amazon Location Service documentation for location data provider
-                        restrictions - https://docs.aws.amazon.com/location/latest/developerguide/
-                        calculate-route-matrix.html#matrix-routing-position-limits"""
+                        "Check Amazon Location Service documentation for location data provider "+
+                        "restrictions - https://docs.aws.amazon.com/location/latest/developerguide/"+
+                        "calculate-route-matrix.html#matrix-routing-position-limits"
                     ]
                     response["statusCode"] = 400
                 else:
