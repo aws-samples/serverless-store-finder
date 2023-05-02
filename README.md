@@ -2,14 +2,14 @@
 
 ## Introduction
 
-This repository demonstrates how [Amazon Location Service](https://aws.amazon.com/location/)'s Maps, Places and Routing APIs can be used to implement a simple "store finder" web page which lists the physical stores that are most accessible to the customer, along with pertinent store information such as opening hours and address. 
+This repository demonstrates how [Amazon Location Service](https://aws.amazon.com/location/)'s Maps, Places and Routing APIs can be used to implement a simple "store finder" web page which lists the physical stores that are most accessible based on a customers location, along with pertinent store information such as opening hours and address. 
 
-There are 2 back-end approaches being demonstrated by this solution to address 2 customer use-cases. Both approaches share the identical [Vue.js 3.0](https://vuejs.org/) front-end, which provides the user with the ability to select their current or future departure location. Depending on the pattern in use, the front-end invokes the corresponding back-end API to return the destination stores nearest to the submitted departure point.
+There are 2 back-end approaches being demonstrated by this solution to address 2 different practical use-cases. Both approaches share the identical [Vue.js 3.0](https://vuejs.org/) front-end, which provides the user with the ability to select their current location or select a reference location using the Suggestions API. Depending on the pattern in use, the front-end invokes the corresponding back-end API to return the destination stores nearest to the submitted reference point.
 
 ### API patterns
 
 - **Pattern 1** - The store information is stored in an Amazon DynamoDB table. All stores are returned by the AWS Lambda function and evaluated using Amazon Location Service's Routing API. The refined, sorted results are then returned back to the end user via Amazon API Gateway. This approach is recommended for a business with a small number of stores.
-- **Pattern 2** The store information is stored in an Amazon Aurora Serverless V2 (PostgreSQL) database. A subset of stores is initially returned by the AWS Lambda function using PostgreSQL's [PostGIS](https://postgis.net/) geospatial extension. This finite list is then evaluated using Amazon Location Service's Routing API, and sorted results are then returned back to the end user via Amazon API Gateway. This approach is recommended for a business with a large number of stores.
+- **Pattern 2** The store information is stored in an Amazon Aurora Serverless V2 (PostgreSQL) database. A subset of stores is initially returned by the AWS Lambda function using PostgreSQL's [PostGIS](https://postgis.net/) geospatial extension to execute a radial query. This finite list (all locations within a 25 miles radius distance) is sorted using straight line distance then evaluated using Amazon Location Service's Routing API. Sorting by straight line distance first helps reduce the cost associated with calling the Routes API. The shortest routes (based on response from Amazon Location Service) are then returned back to the end user via Amazon API Gateway. This approach is recommended for a business with a large number of stores.
 
 Both methods leverage caching on Amazon API Gateway to ensure frequent requests are responded to quickly, and cost-effectively. 
 
