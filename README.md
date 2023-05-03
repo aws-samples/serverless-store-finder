@@ -17,12 +17,6 @@ Both methods leverage caching on Amazon API Gateway to ensure frequent requests 
 
 ![Solution overview](architecture_diagram_v0.4.png)
 
-### Blog post
-
-The below blog post covers this solution in more detail.
-
-//TODO: Link to blog post
-
 ## Getting started
 
 ### Prerequisites
