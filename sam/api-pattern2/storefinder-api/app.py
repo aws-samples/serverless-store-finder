@@ -139,7 +139,6 @@ def lambda_handler(event, context):
             body = [dict(zip(keys, closest_locations[n])) for n in range(len(closest_locations))]
         else:
             body = [dict(zip(keys, closest_locations[n])) for n in range(max_results)]
-        print(json.dumps(body))
     else:
         body = []
     myheaders = {

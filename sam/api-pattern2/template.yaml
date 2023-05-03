@@ -87,8 +87,8 @@ Resources:
       GroupDescription: 'Security group for the Aurora database'
       VpcId: !Ref storeFinderLocationsVPC
       SecurityGroupEgress:
-        -   CidrIp: 0.0.0.0/0
-            Description: 'Allow all outbound access to internet'
+        -   CidrIp: 127.0.0.1/32
+            Description: 'Disable outbound traffic'
             FromPort: -1
             IpProtocol: -1
             ToPort: -1
