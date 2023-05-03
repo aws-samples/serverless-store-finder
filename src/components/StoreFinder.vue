@@ -6,7 +6,7 @@
           severity="info"
           :closable="true"
         >
-          This sample application uses locations of 18 major train stations as UK store locations, and over 3500 post offices as
+          This sample application uses locations of 18 major train stations as UK store locations, and over 112,000 post offices as
           US store locations. Please start by selecting the drop-down. Either allow the browser to locate where you are, or enter text
           into the field.
         </Message>
