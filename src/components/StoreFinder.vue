@@ -53,6 +53,9 @@
           Stores near you ({{ destinationLocations.length }} results)
         </p>
       </div>
+      <div v-else>
+        <ProgressSpinner v-if="awaitingAPIResponse"/>
+      </div>
       <div
         v-if="destinationLocations.length > 0"
         style="display: flex; gap: 10px; flex-wrap: wrap; width: 100%; text-align: center;"
@@ -125,7 +128,9 @@
         selectedDeparturePlace: "",
         suggestedDeparturePlaces: [],
         departureLocation: {},
-        destinationLocations: []
+        destinationLocations: [],
+        // Are we waiting for an API response?
+        awaitingAPIResponse: false
       }
     },
     watch: {
@@ -193,16 +198,19 @@
           "MaxResults": this.maxResults
         }
         // Hash used to drive caching behaviour on server-side.
+        this.awaitingAPIResponse = true
         this.generateHash(JSON.stringify(post_request)).then(data =>
         {
           axios.post(this.apiEndpoint + "/nearest", post_request, {params: {hash: data}}).then(response => {
             this.destinationLocations = response.data
+            this.awaitingAPIResponse = false
           }).catch(error => {
             console.log(error)
             this.errorMessage = error.message
             if (error.hasOwnProperty("response")) {
               this.errorMessage = this.errorMessage + " " + error.response.data
             }
+            this.awaitingAPIResponse = false
           })
         })
       },

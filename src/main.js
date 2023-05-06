@@ -8,6 +8,7 @@ import Button from "primevue/button"
 import AutoComplete from "primevue/autocomplete"
 import Dropdown from "primevue/dropdown";
 import Message from "primevue/message";
+import ProgressSpinner from 'primevue/progressspinner';
 import "primevue/resources/themes/saga-blue/theme.css"
 import "primevue/resources/primevue.min.css"
 import "primeicons/primeicons.css"
@@ -22,5 +23,6 @@ myApp.component("Button", Button)
 myApp.component("AutoComplete", AutoComplete)
 myApp.component("Dropdown", Dropdown)
 myApp.component("Message", Message)
+myApp.component("ProgressSpinner", ProgressSpinner)
 
 myApp.mount('#app')
