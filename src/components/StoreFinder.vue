@@ -17,7 +17,7 @@
         >
           The site encountered an error ({{ errorMessage }})
         </Message>
-        <h2>With over 3500 international stores, it is easier than ever to experience our world class service!</h2>
+        <h2>With over 120 thousand international stores, it is easier than ever to experience our world class service!</h2>
         <Dropdown
           v-model="selectedCountry"
           :options="availableCountries"
