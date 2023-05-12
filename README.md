@@ -2,7 +2,7 @@
 
 ## Introduction
 
-This repository demonstrates how [Amazon Location Service](https://aws.amazon.com/location/)'s Maps, Places and Routing APIs can be used to implement a simple "store finder" web page which lists the physical stores that are most accessible based on a customers location, along with pertinent store information such as opening hours and address. 
+This repository demonstrates how [Amazon Location Service](https://aws.amazon.com/location/)'s Maps, Places and Routing APIs can be used to implement a simple "store finder" web page which lists the physical stores that are most accessible based on a customer's location, along with pertinent store information such as opening hours and address. 
 
 There are 2 back-end approaches being demonstrated by this solution to address 2 different practical use-cases. Both approaches share the identical [Vue.js 3.0](https://vuejs.org/) front-end, which provides the user with the ability to select their current location or select a reference location using the Suggestions API. Depending on the pattern in use, the front-end invokes the corresponding back-end API to return the destination stores nearest to the submitted reference point.
 
