@@ -112,10 +112,23 @@ Resources:
       CalculatorName: !Sub '${AWS::StackName}-StoreFinder-RouteCalculator'
       DataSource: 'Here'
       Description: !Sub '${AWS::StackName} StoreFinder Route Calculator'
+  storeFinderAmazonCognitoUserPool:
+    Type: "AWS::Cognito::UserPool"
+    Properties:
+      UserPoolName: !Sub '${AWS::StackName}-StoreFinder-UserPool'
+  storeFinderAmazonCognitoUserPoolClient:
+    Type: "AWS::Cognito::UserPoolClient"
+    Properties:
+      ClientName: !Sub '${AWS::StackName}-StoreFinder-UserPoolClient'
+      GenerateSecret: false
+      UserPoolId: !Ref storeFinderAmazonCognitoUserPool
   storeFinderAmazonCognitoIdentityPool:
     Type: AWS::Cognito::IdentityPool
     Properties:
-      AllowUnauthenticatedIdentities: true
+      AllowUnauthenticatedIdentities: false
+      CognitoIdentityProviders:
+        - ClientId: !Ref storeFinderAmazonCognitoUserPoolClient
+          ProviderName: !GetAtt storeFinderAmazonCognitoUserPool.ProviderName
   storeFinderAmazonCognitoDefaultUnauthenticatedRole:
     Type: AWS::IAM::Role
     Properties:
@@ -131,35 +144,6 @@ Resources:
             Effect: 'Allow'
             Principal:
               Federated: 'cognito-identity.amazonaws.com'
-  storeFinderAmazonCognitoDefaultUnauthenticatedPolicy:
-    Type: AWS::IAM::Policy
-    Properties:
-      PolicyName: !Sub '${AWS::StackName}-StoreFinder-AmazonCognitoDefaultUnauthenticatedPolicy'
-      PolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Effect: 'Allow'
-            Action:
-              - 'geo:GetMapGlyphs'
-              - 'geo:GetMapSprites'
-              - 'geo:GetMapStyleDescriptor'
-              - 'geo:GetMapTile'
-            Resource: !GetAtt storeFinderAmazonLocationServiceMap.Arn
-            Condition:
-              StringLike:
-                aws:referer:
-                  - !Sub 'http://localhost:5173/*'
-                  - !Sub 'http://localhost:5174/*'
-                  - !Sub 'http://127.0.0.1:5173/*'
-                  - !Sub 'http://127.0.0.1:5174/*'
-                  - !Sub 'https://${storeFinderCloudFrontDistribution.DomainName}/*'
-          - Effect: 'Allow'
-            Action:
-              - 'geo:GetPlace'
-              - 'geo:SearchPlaceIndexForSuggestions'
-            Resource: !GetAtt storeFinderAmazonLocationServicePlaceIndex.Arn
-      Roles:
-        - !Ref storeFinderAmazonCognitoDefaultUnauthenticatedRole
   storeFinderAmazonCognitoDefaultAuthenticatedRole:
     Type: AWS::IAM::Role
     Properties:
@@ -193,6 +177,9 @@ Resources:
               StringLike:
                 aws:referer:
                   - !Sub 'http://localhost:5173/*'
+                  - !Sub 'http://localhost:5174/*'
+                  - !Sub 'http://127.0.0.1:5173/*'
+                  - !Sub 'http://127.0.0.1:5174/*'
                   - !Sub 'https://${storeFinderCloudFrontDistribution.DomainName}/*'
           - Effect: 'Allow'
             Action:
@@ -214,6 +201,12 @@ Outputs:
   storeFinderAmazonCognitoIdentityPoolName:
     Value: !Ref storeFinderAmazonCognitoIdentityPool
     Description: 'Amazon Cognito Identity Pool. Use this in your frontend application.'
+  storeFinderAmazonCognitoUserPoolName:
+    Value: !Ref storeFinderAmazonCognitoUserPool
+    Description: 'Amazon Cognito User Pool. Use this in your frontend application.'
+  storeFinderAmazonCognitoUserPoolClientName:
+    Value: !Ref storeFinderAmazonCognitoUserPoolClient
+    Description: 'Amazon Cognito User Pool Web Client. Use this in your frontend application.'
   storeFinderAmazonLocationServiceMapName:
     Value: !Ref storeFinderAmazonLocationServiceMap
     Description: 'Amazon Location Service map name. Use this in your frontend application.'

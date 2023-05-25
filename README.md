@@ -66,6 +66,8 @@ Parameter storeFinderFrontendS3BucketName []: <Your unique Amazon S3 bucket name
 ```
 VITE_AWS_REGION=<You AWS Region>
 VITE_AMAZON_COGNITO_IDENTITY_POOL_ID=<storeFinderAmazonCognitoIdentityPoolName from the Store Finder "Core" Amazon CloudFormation stack output>
+VITE_AMAZON_COGNITO_USER_POOL_ID=<storeFinderAmazonCognitoUserPoolName from the Store Finder "Core" Amazon CloudFormation stack output>
+VITE_AMAZON_COGNITO_USER_POOL_WEB_CLIENT_ID=<storeFinderAmazonCognitoUserPoolClientName from the Store Finder "Core" Amazon CloudFormation stack output>
 VITE_AMAZON_LOCATION_SERVICE_MAP=<storeFinderAmazonLocationServiceMapName from the Store Finder "Core" Amazon CloudFormation stack output>
 VITE_AMAZON_LOCATION_SERVICE_PLACES_INDEX=<storeFinderAmazonLocationServicePlaceIndexName from the Store Finder "Core" Amazon CloudFormation stack output>
 ```
