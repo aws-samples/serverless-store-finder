@@ -154,7 +154,11 @@ aws cloudfront create-invalidation --distribution-id <Amazon CloudFront distribu
 ```
  
 ## Accessing the site
-You can now access the site by visiting the URL of the Amazon CloudFormation distribution. You can find out what this is by checking `storeFinderAmazonCloudFrontDistributionUrl` from the output of the Store Finder "Core" Amazon CloudFormation stack.
+You can now access the site by visiting the URL of the Amazon CloudFormation distribution. You can find out what the URL is by checking `storeFinderAmazonCloudFrontDistributionUrl` from the output of the Store Finder "Core" Amazon CloudFormation stack.
+
+![Cognito login screen](cognito_login_screen.png)
+
+The Amazon Location Service and Amazon API Gateway APIs are protected using an Amazon Cognito user and identity pools. You must first create a user account using an email address, and validate the email address, before you are able to use the website.
 
 ![Store Finder screenshot](store_finder_screenshot.png)
 
