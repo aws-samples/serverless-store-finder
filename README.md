@@ -15,7 +15,7 @@ Both methods leverage caching on Amazon API Gateway to ensure frequent requests 
 
 ### Solution overview
 
-![Solution overview](architecture_diagram_v0.5.png)
+![Solution overview](images/architecture_diagram_v0.5.png)
 
 ## Getting started
 
@@ -157,11 +157,11 @@ aws cloudfront create-invalidation --distribution-id <Amazon CloudFront distribu
 ## Accessing the site
 You can now access the site by visiting the URL of the Amazon CloudFormation distribution. You can find out what the URL is by checking `storeFinderAmazonCloudFrontDistributionUrl` from the output of the Store Finder "Core" Amazon CloudFormation stack.
 
-![Cognito login screen](cognito_login_screen.png)
+![Cognito login screen](images/cognito_login_screen.png)
 
 The Amazon Location Service and Amazon API Gateway APIs are protected using an Amazon Cognito user and identity pools. You must first create a user account using an email address, and validate the email address, before you are able to use the website.
 
-![Store Finder screenshot](store_finder_screenshot.png)
+![Store Finder screenshot](images/store_finder_screenshot.png)
 
 With the demo, toggling the drop-down between "United Kingdom" and "United States" switches the back-end API being invoked between API 1 (Pattern 1) and API 2 (Pattern 2).
 
