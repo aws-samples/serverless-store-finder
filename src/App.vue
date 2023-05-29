@@ -8,9 +8,9 @@
   Amplify.configure({
     // Authentication (via Amazon Cognito)
     Auth: {
-      identityPoolId: import.meta.env.VITE_AMAZON_COGNITO_IDENTITY_POOL_ID,
-      userPoolId: import.meta.env.VITE_AMAZON_COGNITO_USER_POOL_ID,
-      userPoolWebClientId: import.meta.env.VITE_AMAZON_COGNITO_USER_POOL_WEB_CLIENT_ID,
+      identityPoolId: import.meta.env.VITE_AMAZON_COGNITO_IDENTITY_POOL_NAME,
+      userPoolId: import.meta.env.VITE_AMAZON_COGNITO_USER_POOL_NAME,
+      userPoolWebClientId: import.meta.env.VITE_AMAZON_COGNITO_USER_POOL_CLIENT_NAME,
       region: import.meta.env.VITE_AWS_REGION
     },
     // Amazon Location Service
@@ -30,25 +30,43 @@
         },
         region: import.meta.env.VITE_AWS_REGION,
       },
+    },
+    API: {
+      endpoints: [
+        {
+          name: "storeFinderAPIEndpoint1",
+          endpoint: import.meta.env.VITE_APIGATEWAY_ENDPOINT_API1
+        },
+        {
+          name: "storeFinderAPIEndpoint2",
+          endpoint: import.meta.env.VITE_APIGATEWAY_ENDPOINT_API2
+        }
+      ]
     }
   });
 </script>
 <template>
-  <authenticator>
-    <template v-slot="{ user, signOut }">
+  <authenticator :login-mechanisms="['email']">
+    <template #default="{ user, signOut }">
       <Menubar>
-        <div style="text-align: right">
-          <div style="margin: 10px">
-            <Button
-                label="Sign out"
-                icon="pi pi-sign-out"
-                icon-pos="left"
-                style="margin-left: 10px;"
-                @click="signOut"
-            />
-          </div>
-        </div>
+        hello
+        <template #start>
+          <i class="pi pi-github" /> Find the code on <a
+            href="https://github.com/aws-samples/serverless-store-finder"
+            target="_blank"
+          >GitHub</a>
+        </template>
+        <template #end>
+          <Button
+            label="Sign out"
+            icon="pi pi-sign-out"
+            icon-pos="left"
+            style="margin-left: 10px;"
+            @click="signOut"
+          />
+        </template>
       </Menubar>
+      <br>
       <StoreFinder />
     </template>
   </authenticator>

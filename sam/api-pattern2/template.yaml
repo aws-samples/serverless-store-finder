@@ -331,7 +331,8 @@ Resources:
   storeFinderAPIGatewayMethodNearestPost:
     Type: AWS::ApiGateway::Method
     Properties:
-      AuthorizationType: NONE
+      AuthorizationType: COGNITO_USER_POOLS
+      AuthorizerId: !Ref storeFinderApiGatewayAuthorizer
       HttpMethod: POST
       RequestParameters:
         method.request.querystring.hash: 'true'
@@ -389,6 +390,16 @@ Resources:
       FunctionName: !Ref storeFinderLambdaFunctionAPI
       Principal: 'apigateway.amazonaws.com'
       SourceArn: !Sub 'arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${storeFinderAPIGateway}/*/OPTIONS/stores/nearest'
+  storeFinderApiGatewayAuthorizer:
+    Type: AWS::ApiGateway::Authorizer
+    Properties:
+      IdentitySource: method.request.header.authorization
+      Name: !Sub '${AWS::StackName}-StoreFinder-Authorizer'
+      ProviderARNs:
+        - Fn::ImportValue:
+            Fn::Sub: '${storeFinderCoreCloudFormationStackName}-StoreFinder-CognitoUserPoolArn'
+      RestApiId: !Ref storeFinderAPIGateway
+      Type: COGNITO_USER_POOLS
   storeFinderLambdaDataGenLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
@@ -425,6 +436,14 @@ Resources:
             SecretArn: !Ref storeFinderAuroraDBSecret
         - Version: 2012-10-17
           Statement:
+            - Effect: 'Allow'
+              Action:
+                - 's3:DeleteBucket'
+              Resource: !Sub "arn:${AWS::Partition}:s3:::${storeFinderDataImportS3BucketName}"
+            - Effect: 'Allow'
+              Action:
+                - 's3:DeleteObject'
+              Resource: !Sub "arn:${AWS::Partition}:s3:::${storeFinderDataImportS3BucketName}/*"
             - Effect: 'Allow'
               Action:
                 - 'logs:CreateLogGroup'

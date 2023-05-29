@@ -1,3 +1,5 @@
+""" Lambda function (custom resource) to generate store finder data. """
+
 ## Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 ## SPDX-License-Identifier: MIT-0
 import os
@@ -20,6 +22,7 @@ username = secret_dict["username"]
 password = secret_dict["password"]
 
 def lambda_handler(event, context):
+    """ Lambda function for data generation using uploaded CSV in S3 bucket. """
     ### get object from s3 and read the data
     source_bucket = event["Records"][0]["s3"]["bucket"]["name"]
     source_object = event["Records"][0]["s3"]["object"]["key"]
@@ -100,3 +103,6 @@ def lambda_handler(event, context):
     cursor.execute(sql)
     print("Table created successfully........")
     execute_values(conn, data_frame, rds_table)
+    s3_client.delete_object(Bucket=source_bucket, Key=source_object)
+    s3_client.delete_bucket(Bucket=source_bucket)
+    print("Removed uploaded file and S3 bucket........")

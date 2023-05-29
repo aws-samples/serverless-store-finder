@@ -116,6 +116,10 @@ Resources:
     Type: "AWS::Cognito::UserPool"
     Properties:
       UserPoolName: !Sub '${AWS::StackName}-StoreFinder-UserPool'
+      UsernameAttributes:
+        - email
+      AutoVerifiedAttributes:
+        - email
   storeFinderAmazonCognitoUserPoolClient:
     Type: "AWS::Cognito::UserPoolClient"
     Properties:
@@ -204,6 +208,11 @@ Outputs:
   storeFinderAmazonCognitoUserPoolName:
     Value: !Ref storeFinderAmazonCognitoUserPool
     Description: 'Amazon Cognito User Pool. Use this in your frontend application.'
+  storeFinderAmazonCognitoUserPoolArn:
+    Value: !GetAtt storeFinderAmazonCognitoUserPool.Arn
+    Description: 'Amazon Cognito User Pool ARN.'
+    Export:
+      Name: !Sub '${AWS::StackName}-StoreFinder-CognitoUserPoolArn'
   storeFinderAmazonCognitoUserPoolClientName:
     Value: !Ref storeFinderAmazonCognitoUserPoolClient
     Description: 'Amazon Cognito User Pool Web Client. Use this in your frontend application.'

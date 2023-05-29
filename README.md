@@ -9,13 +9,13 @@ There are 2 back-end approaches being demonstrated by this solution to address 2
 ### API patterns
 
 - **Pattern 1** - The store information is stored in an Amazon DynamoDB table. All stores are returned by the AWS Lambda function and evaluated using Amazon Location Service's Routing API. The refined, sorted results are then returned back to the end user via Amazon API Gateway. This approach is recommended for a business with a small number of stores.
-- **Pattern 2** The store information is stored in an Amazon Aurora Serverless V2 (PostgreSQL) database. A subset of stores is initially returned by the AWS Lambda function using PostgreSQL's [PostGIS](https://postgis.net/) geospatial extension to execute a radial query. This finite list (all locations within a 25 miles radius distance) is sorted using straight line distance then evaluated using Amazon Location Service's Routing API. Sorting by straight line distance first helps reduce the cost associated with calling the Routes API. The shortest routes (based on response from Amazon Location Service) are then returned back to the end user via Amazon API Gateway. This approach is recommended for a business with a large number of stores.
+- **Pattern 2** - The store information is stored in an Amazon Aurora Serverless V2 (PostgreSQL) database. A subset of stores is initially returned by the AWS Lambda function using PostgreSQL's [PostGIS](https://postgis.net/) geospatial extension to execute a radial query. This finite list (all locations within a 25 miles radius distance) is sorted using straight line distance then evaluated using Amazon Location Service's Routing API. Sorting by straight line distance first helps reduce the cost associated with calling the Routes API. The shortest routes (based on response from Amazon Location Service) are then returned back to the end user via Amazon API Gateway. This approach is recommended for a business with a large number of stores.
 
 Both methods leverage caching on Amazon API Gateway to ensure frequent requests are responded to quickly, and cost-effectively. 
 
 ### Solution overview
 
-![Solution overview](architecture_diagram_v0.4.png)
+![Solution overview](architecture_diagram_v0.5.png)
 
 ## Getting started
 
@@ -65,9 +65,9 @@ Parameter storeFinderFrontendS3BucketName []: <Your unique Amazon S3 bucket name
 3. Confirm that the `Successfully created/updated stack` message is shown. Populate the missing Amazon Location Service and Amazon Cognito details in the `.env.local` file with details from the outputs of the deployed Amazon CloudFormation stack.
 ```
 VITE_AWS_REGION=<You AWS Region>
-VITE_AMAZON_COGNITO_IDENTITY_POOL_ID=<storeFinderAmazonCognitoIdentityPoolName from the Store Finder "Core" Amazon CloudFormation stack output>
-VITE_AMAZON_COGNITO_USER_POOL_ID=<storeFinderAmazonCognitoUserPoolName from the Store Finder "Core" Amazon CloudFormation stack output>
-VITE_AMAZON_COGNITO_USER_POOL_WEB_CLIENT_ID=<storeFinderAmazonCognitoUserPoolClientName from the Store Finder "Core" Amazon CloudFormation stack output>
+VITE_AMAZON_COGNITO_IDENTITY_POOL_NAME=<storeFinderAmazonCognitoIdentityPoolName from the Store Finder "Core" Amazon CloudFormation stack output>
+VITE_AMAZON_COGNITO_USER_POOL_NAME=<storeFinderAmazonCognitoUserPoolName from the Store Finder "Core" Amazon CloudFormation stack output>
+VITE_AMAZON_COGNITO_USER_POOL_CLIENT_NAME=<storeFinderAmazonCognitoUserPoolClientName from the Store Finder "Core" Amazon CloudFormation stack output>
 VITE_AMAZON_LOCATION_SERVICE_MAP=<storeFinderAmazonLocationServiceMapName from the Store Finder "Core" Amazon CloudFormation stack output>
 VITE_AMAZON_LOCATION_SERVICE_PLACES_INDEX=<storeFinderAmazonLocationServicePlaceIndexName from the Store Finder "Core" Amazon CloudFormation stack output>
 ```

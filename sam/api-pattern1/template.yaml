@@ -178,8 +178,20 @@ Resources:
   storeFinderAPIGatewayMethod:
     Type: AWS::ApiGateway::Method
     Properties:
-      AuthorizationType: NONE
+      AuthorizationType: COGNITO_USER_POOLS
+      AuthorizerId: !Ref storeFinderApiGatewayAuthorizer
       HttpMethod: GET
+      Integration:
+        IntegrationHttpMethod: POST
+        Type: AWS_PROXY
+        Uri: !Sub 'arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${storeFinderAPILambdaFunction.Arn}/invocations'
+      ResourceId: !Ref storeFinderAPIGatewayProxyResource
+      RestApiId: !Ref storeFinderAPIGateway
+  storeFinderAPIGatewayMethodOptions:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      AuthorizationType: NONE
+      HttpMethod: OPTIONS
       Integration:
         IntegrationHttpMethod: POST
         Type: AWS_PROXY
@@ -189,7 +201,8 @@ Resources:
   storeFinderAPIGatewayMethodNearestPost:
     Type: AWS::ApiGateway::Method
     Properties:
-      AuthorizationType: NONE
+      AuthorizationType: COGNITO_USER_POOLS
+      AuthorizerId: !Ref storeFinderApiGatewayAuthorizer
       HttpMethod: POST
       RequestParameters:
         method.request.querystring.hash: 'true'
@@ -244,6 +257,13 @@ Resources:
       FunctionName: !Ref storeFinderAPILambdaFunction
       Principal: 'apigateway.amazonaws.com'
       SourceArn: !Sub 'arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${storeFinderAPIGateway}/*/GET/stores'
+  storeFinderLambdaApiGatewayInvokeOptions:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: 'lambda:InvokeFunction'
+      FunctionName: !Ref storeFinderAPILambdaFunction
+      Principal: 'apigateway.amazonaws.com'
+      SourceArn: !Sub 'arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${storeFinderAPIGateway}/*/OPTIONS/stores'
   storeFinderLambdaApiGatewayInvokeNearestPost:
     Type: AWS::Lambda::Permission
     Properties:
@@ -258,6 +278,16 @@ Resources:
       FunctionName: !Ref storeFinderAPILambdaFunction
       Principal: 'apigateway.amazonaws.com'
       SourceArn: !Sub 'arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${storeFinderAPIGateway}/*/OPTIONS/stores/nearest'
+  storeFinderApiGatewayAuthorizer:
+    Type: AWS::ApiGateway::Authorizer
+    Properties:
+      IdentitySource: method.request.header.authorization
+      Name: !Sub '${AWS::StackName}-StoreFinder-Authorizer'
+      ProviderARNs:
+        - Fn::ImportValue:
+            Fn::Sub: '${storeFinderCoreCloudFormationStackName}-StoreFinder-CognitoUserPoolArn'
+      RestApiId: !Ref storeFinderAPIGateway
+      Type: COGNITO_USER_POOLS
   storeFinderDataGeneration:
     Type: AWS::CloudFormation::CustomResource
     DependsOn:

@@ -1,3 +1,5 @@
+""" Lambda function for the API serving incoming store finder requests. """
+
 ## Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 ## SPDX-License-Identifier: MIT-0
 import os
@@ -27,12 +29,13 @@ password = secret_dict["password"]
 keys = ["id", "name", "hours", "location", "Distance", "DurationSeconds"]
 
 def lambda_handler(event, context):
+    """ Lambda handler for OPTIONS/POST requests. """
     ### Load Event Data
-    cors_origin = None
+    cors_allow_origin = None
     if event["multiValueHeaders"]["origin"][0] in AWS_ALLOWED_CORS_ORIGINS:
-        cors_origin = event["multiValueHeaders"]["origin"][0]
-
-    if event["path"] == "/stores/nearest" and event["body"]:
+        cors_allow_origin = event["multiValueHeaders"]["origin"][0]
+    if (event["httpMethod"]=="POST" and event["path"] == "/stores/nearest" and event["body"]):
+        # If this is a POST request with a body containing departure point
         body = json.loads(event["body"])
         point = body["Departure"]["Point"]
         max_results = int(body["MaxResults"])
@@ -139,18 +142,18 @@ def lambda_handler(event, context):
             body = [dict(zip(keys, closest_locations[n])) for n in range(len(closest_locations))]
         else:
             body = [dict(zip(keys, closest_locations[n])) for n in range(max_results)]
-    else:
+    elif (event["httpMethod"]=="OPTIONS"):
+        # If request is an OPTIONS...
         body = []
     myheaders = {
-		"Access-Control-Allow-Headers": "Content-Type",
-		"Access-Control-Allow-Origin": cors_origin,
+		"Access-Control-Allow-Headers": "Content-Type,Authorization",
+		"Access-Control-Allow-Origin": cors_allow_origin,
 		"Access-Control-Allow-Methods": "POST,OPTIONS"
 	}
-
     ### Return a body to API Gateway
-    ret = {
+    response = {
         "statusCode": 200,
         "headers": myheaders,
         "body": json.dumps(body)
         }
-    return ret
+    return response

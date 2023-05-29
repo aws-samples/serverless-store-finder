@@ -54,7 +54,7 @@
         </p>
       </div>
       <div v-else>
-        <ProgressSpinner v-if="awaitingAPIResponse"/>
+        <ProgressSpinner v-if="awaitingAPIResponse" />
       </div>
       <div
         v-if="destinationLocations.length > 0"
@@ -101,7 +101,7 @@
 <script>
   // AWS Amplify Geo and maplibre-gl libraries
   import { createMap } from "maplibre-gl-js-amplify";
-  import { Geo } from "aws-amplify";
+  import { Geo, API, Auth } from "aws-amplify";
   import maplibregl from "maplibre-gl";
   import "maplibre-gl/dist/maplibre-gl.css"
   import axios from "axios";
@@ -130,7 +130,8 @@
         departureLocation: {},
         destinationLocations: [],
         // Are we waiting for an API response?
-        awaitingAPIResponse: false
+        awaitingAPIResponse: false,
+        apiToken: ""
       }
     },
     watch: {
@@ -189,39 +190,66 @@
           console.log("Geolocation is not supported by this browser.")
         }
       },
+      async returnAllStores() {
+        let apiName = ""
+        if (this.selectedCountry.code === "GBR") {
+          apiName = 'storeFinderAPIEndpoint1';
+        } else if (this.selectedCountry.code === "USA") {
+          apiName = 'storeFinderAPIEndpoint2';
+        }
+        const path = '';
+        const token = await this.getJWTToken()
+        const myInit = {
+          headers: {
+            Authorization: token
+          },
+          response: true
+        };
+        await API.get(apiName, path, myInit).then((response) => {
+          this.destinationLocations = response.data
+        }).catch((error) => {
+          console.log(error.message);
+          this.errorMessage = error.message
+        });
+      },
       async returnNearestStores() {
         // Return only the nearest stores using the API endpoint.
         this.destinationLocations = []
-        let post_request = {
+        const post_request = {
           "Departure":
-              {"Point": [this.departureLocation.longitude, this.departureLocation.latitude]},
+            {"Point": [this.departureLocation.longitude, this.departureLocation.latitude]},
           "MaxResults": this.maxResults
         }
-        // Hash used to drive caching behaviour on server-side.
+        let apiName = ""
+        if (this.selectedCountry.code === "GBR") {
+          apiName = 'storeFinderAPIEndpoint1';
+        } else if (this.selectedCountry.code === "USA") {
+          apiName = 'storeFinderAPIEndpoint2';
+        }
+        const path = '/nearest';
         this.awaitingAPIResponse = true
-        this.generateHash(JSON.stringify(post_request)).then(data =>
-        {
-          axios.post(this.apiEndpoint + "/nearest", post_request, {params: {hash: data}}).then(response => {
+        const token = await this.getJWTToken()
+        this.generateHash(JSON.stringify(post_request)).then(data => {
+          const myInit = {
+            body: post_request,
+            queryStringParameters: {
+              hash: data
+            },
+            headers: {
+              Authorization: token
+            },
+            response: true
+          };
+          API.post(apiName, path, myInit).then((response) => {
             this.destinationLocations = response.data
             this.awaitingAPIResponse = false
-          }).catch(error => {
-            console.log(error)
+          }).catch((error) => {
+            console.log(error.message);
             this.errorMessage = error.message
-            if (error.hasOwnProperty("response")) {
-              this.errorMessage = this.errorMessage + " " + error.response.data
-            }
+            this.errorMessage = this.errorMessage
             this.awaitingAPIResponse = false
-          })
-        })
-      },
-      async returnAllStores() {
-        // Return all stores using the API endpoint.
-        await axios.get(this.apiEndpoint + "/").then(response=> {
-          this.destinationLocations = response.data
-        }).catch(error=>{
-          console.log(error)
-          this.errorMessage = error.message
-        })
+          });
+        });
       },
       updateDepartureLocation(position) {
         // Update the departure location.
@@ -311,6 +339,10 @@
         return hashArray
             .map((b) => b.toString(16).padStart(2, "0"))
             .join("");
+      },
+      async getJWTToken() {
+        const token = `${(await Auth.currentSession()).getIdToken().getJwtToken()}`
+        return token
       }
     }
   }
