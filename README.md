@@ -131,6 +131,7 @@ VITE_APIGATEWAY_ENDPOINT_API2=<storeFinderAPIGatewayEndpoint from Store Finder "
 ```
 aws s3 cp us-post-offices.csv s3://<storeFinderDataImport3Bucket from the Store Finder "API2" Amazon CloudFormation Stack output>`
 ```
+> Note that in order to prevent inadvertent overwriting of the data that resides in the table, the bucket upload S3 bucket is automatically deleted after the first execution of the Pattern 2 `storefinder-datageneration` Lambda function.
 
 ### Build and deploy the Vue.js application
 
