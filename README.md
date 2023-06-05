@@ -150,11 +150,13 @@ zip -r store-finder.zip .
 ```
 > Note that if you make subsequent changes to the `.env.local` file, you will need to rebuild the Vue.js application, and repeat these steps.
 > 
-4. Navigate to AWS Amplify in the AWS Console and select the AWSAmplify app that was created using the "Store Finder - Core" AWS SAM template. Select "Deploy without Git provider" and select "Connect branch"
+4. Navigate to AWS Amplify in the AWS Console and select the AWS Amplify app that was created using the "Store Finder - Core" AWS SAM template. Select "Deploy without Git provider" and select "Connect branch"
 
-![Amplify hosting URL](images/configure_amplify_app_1.png)
+![Configure Amplify 1](images/configure_amplify_app_1.png)
 
 Give the environment a meaningful name, such as `production`, select `drag and drop` as the method, and upload the `store-finder.zip` file created earlier.
+
+![Configure Amplify 2](images/configure_amplify_app_2.png)
  
 ## Accessing the site
 You can now access the site by visiting the URL of the AWS Amplify hosting environment.
