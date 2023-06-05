@@ -43,7 +43,7 @@ You are now ready to deploy the AWS SAM templates.
 
 ### Store Finder - Core
 
-The "Store Finder - Core" AWS SAM template will deploy the shared infrastructure resources required by both patterns, namely the Amazon Location Service map, place index and route calculator resources, and Amazon Cognito user and identity pools. 
+The "Store Finder - Core" AWS SAM template will deploy the shared infrastructure resources required by both patterns, namely the Amazon Location Service map, place index and route calculator resources, and Amazon Cognito user and identity pools. This AWS SAM template will also create an empty AWS Amplify app.
 
 1. Navigate to the `sam/core` directory on your local machine. Run `sam build` to build the application ready for deployment. Confirm that the `Build Succeeded` message is shown before continuing. 
 ```
@@ -144,18 +144,24 @@ npm run build
 cd dist
 ls
 ```
-3. Upload the files in the `dist` folder to the Amazon S3 core hosting bucket.
+3. Zip all files that reside in the `/dist` directory.
 ```
-aws s3 cp . s3://<storeFinderFrontendS3BucketUploadLocation from Store Finder "Core" Amazon CloudFormation Stack output> --recursive
+zip -r store-finder.zip .
 ```
-> Note that if you make subsequent changes to the `.env.local` file, you will need to rebuild the Vue.js application, upload the results and invalidate the Amazon Route 53 distribution cache.
+> Note that if you make subsequent changes to the `.env.local` file, you will need to rebuild the Vue.js application, and repeat these steps.
+> 
+4. Navigate to AWS Amplify in the AWS Console and select the AWSAmplify app that was created using the "Store Finder - Core" AWS SAM template. Select "Deploy without Git provider" and select "Connect branch"
 
-```
-aws cloudfront create-invalidation --distribution-id <Amazon CloudFront distribution ID> --paths "/*"
-```
+![Amplify hosting URL](images/configure_amplify_app_1.png)
+
+Give the environment a meaningful name, such as `production`, select `drag and drop` as the method, and upload the `store-finder.zip` file created earlier.
  
 ## Accessing the site
-You can now access the site by visiting the URL of the Amazon CloudFormation distribution. You can find out what the URL is by checking `storeFinderAmazonCloudFrontDistributionUrl` from the output of the Store Finder "Core" Amazon CloudFormation stack.
+You can now access the site by visiting the URL of the AWS Amplify hosting environment.
+
+![Amplify hosting URL](images/configure_amplify_app_3.png)
+
+Copy and paste the URL into your machine's browser.
 
 ![Cognito login screen](images/cognito_login_screen.png)
 
@@ -183,7 +189,7 @@ Any CSV file conforming to the same data structure can be uploaded to the Amazon
 
 Both API patterns use Amazon API Gateway with an [AWS Lambda function proxy](https://docs.aws.amazon.com/apigateway/latest/developerguide/set-up-lambda-proxy-integrations.html). As such, CORS headers present in the client requests are analysed and returned by the AWS Lambda function.
 
-If the API endpoints are to be accessed by any other URL than on local host ports 5173 and 5174 (HTTP), or via the Amazon CloudFront distribution URL of your environment (HTTPS), the AWS SAM templates will need to be modified to include your custom URL. The URLs are declared in the `AWS_ALLOWED_CORS_ORIGINS` environment variable of the AWS Lambda function resource. These reside in the respective API AWS SAM templates.
+If the API endpoints are to be accessed by any other URL than on local host ports 5173 and 5174 (HTTP), or via an Amplify Hosting URL, the AWS SAM templates will need to be modified to include your custom URL. The URLs are declared in the `AWS_ALLOWED_CORS_ORIGINS` environment variable of the AWS Lambda function resource. These reside in the respective API AWS SAM templates.
 
 Additionally, `{Condition: {StringLike: {aws:referer: [] }}}` value of the AWS IAM policy attached to the Amazon Cognito unauthenticated AWS IAM role needs to be enabled to facilitate access to the Amazon Location Service API. This resides in the "Core" AWS SAM template. This [AWS IAM policy condition](https://docs.aws.amazon.com/location/latest/developerguide/authenticating-using-cognito.html) controls whether maps tile are downloaded and displayed.
 
