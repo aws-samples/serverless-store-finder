@@ -10,6 +10,11 @@ Globals:
     Timeout: 15
 
 Resources:
+  storeFinderAmplifyApp:
+    Type: AWS::Amplify::App
+    Properties:
+      Description: !Sub '${AWS::StackName} StoreFinder Amplify app'
+      Name: !Sub '${AWS::StackName}-StoreFinder-AmplifyApp'
   storeFinderAmazonLocationServiceMap:
     Type: AWS::Location::Map
     Properties:
