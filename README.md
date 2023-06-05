@@ -148,6 +148,8 @@ ls
 ```
 zip -r store-finder.zip .
 ```
+> Note that the zip operation needs to be performed inside the `/dist` directory and NOT at the folder-level.
+
 > Note that if you make subsequent changes to the `.env.local` file, you will need to rebuild the Vue.js application, and repeat these steps.
 > 
 4. Navigate to AWS Amplify in the AWS Console and select the AWS Amplify app that was created using the "Store Finder - Core" AWS SAM template. Select "Deploy without Git provider" and select "Connect branch"
