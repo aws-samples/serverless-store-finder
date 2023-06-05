@@ -28,6 +28,11 @@ def lambda_handler(event, context):
     cors_allow_origin = None
     if event["multiValueHeaders"]["origin"][0] in AWS_ALLOWED_CORS_ORIGINS:
         cors_allow_origin = event["multiValueHeaders"]["origin"][0]
+    else:
+        # Allow anything from Amplify Hosting
+        url_string_list = event["multiValueHeaders"]["origin"][0].split('.')
+        if (('amplifyapp' in url_string_list[2]) and ('com' in url_string_list[3])):
+            cors_allow_origin = event["multiValueHeaders"]["origin"][0]
     # Respond to client requests
     response = {}
     if ((event["httpMethod"]=="POST") or (event["httpMethod"]=="GET")):

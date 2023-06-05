@@ -34,6 +34,11 @@ def lambda_handler(event, context):
     cors_allow_origin = None
     if event["multiValueHeaders"]["origin"][0] in AWS_ALLOWED_CORS_ORIGINS:
         cors_allow_origin = event["multiValueHeaders"]["origin"][0]
+    else:
+        # Allow anything from Amplify Hosting
+        url_string_list = event["multiValueHeaders"]["origin"][0].split('.')
+        if (('amplifyapp' in url_string_list[2]) and ('com' in url_string_list[3])):
+            cors_allow_origin = event["multiValueHeaders"]["origin"][0]
     if (event["httpMethod"]=="POST" and event["path"] == "/stores/nearest" and event["body"]):
         # If this is a POST request with a body containing departure point
         body = json.loads(event["body"])

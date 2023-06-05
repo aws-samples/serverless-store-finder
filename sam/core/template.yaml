@@ -9,90 +9,7 @@ Globals:
     MemorySize: 512
     Timeout: 15
 
-Parameters:
-  storeFinderFrontendS3BucketName:
-    Description: Provide the name of the Amazon S3 bucket used to host your frontend files.
-    Type: String
-    AllowedPattern: '(?=^.{3,63}$)(^[a-z0-9]+[a-z0-9\-]+[a-z0-9]+$)'
-
 Resources:
-  storeFinderFrontendS3Bucket:
-    Type: AWS::S3::Bucket
-    Properties:
-      BucketName: !Ref storeFinderFrontendS3BucketName
-      PublicAccessBlockConfiguration:
-        BlockPublicAcls: true
-        BlockPublicPolicy: true
-        IgnorePublicAcls: true
-        RestrictPublicBuckets: true
-      OwnershipControls:
-        Rules:
-          - ObjectOwnership: BucketOwnerEnforced
-      BucketEncryption:
-        ServerSideEncryptionConfiguration:
-          - ServerSideEncryptionByDefault:
-              SSEAlgorithm: 'AES256'
-  storeFinderFrontendS3BucketPolicy:
-    Type: AWS::S3::BucketPolicy
-    Properties:
-      Bucket: !Ref storeFinderFrontendS3BucketName
-      PolicyDocument:
-        Statement:
-          - Action:
-              - 's3:GetObject'
-            Effect: 'Allow'
-            Resource: !Sub 'arn:${AWS::Partition}:s3:::${storeFinderFrontendS3BucketName}/*'
-            Principal:
-              Service: 'cloudfront.amazonaws.com'
-            Condition:
-              StringEquals:
-                AWS:SourceArn: !Sub 'arn:${AWS::Partition}:cloudfront::${AWS::AccountId}:distribution/${storeFinderCloudFrontDistribution.Id}'
-  storeFinderCloudFormationAccessLoggingS3Bucket:
-    Type: AWS::S3::Bucket
-    Properties:
-      PublicAccessBlockConfiguration:
-        BlockPublicAcls: true
-        BlockPublicPolicy: true
-        IgnorePublicAcls: true
-        RestrictPublicBuckets: true
-      OwnershipControls:
-        Rules:
-          - ObjectOwnership: BucketOwnerPreferred
-      BucketEncryption:
-        ServerSideEncryptionConfiguration:
-          - ServerSideEncryptionByDefault:
-              SSEAlgorithm: 'AES256'
-  storeFinderCloudFrontDistribution:
-    Type: 'AWS::CloudFront::Distribution'
-    Properties:
-      DistributionConfig:
-        DefaultCacheBehavior:
-          CachePolicyId: '658327ea-f89d-4fab-a63d-7e88639e58f6'
-          TargetOriginId: 'StoreFinderS3OriginBucket'
-          ViewerProtocolPolicy: 'redirect-to-https'
-        Logging:
-          Bucket: !Sub '${storeFinderCloudFormationAccessLoggingS3Bucket.DomainName}'
-          IncludeCookies: 'false'
-          Prefix: 'CFDistributionAccessLogs'
-        Comment: 'Store Finder Amazon CloudFront distribution'
-        DefaultRootObject: 'index.html'
-        Enabled: 'true'
-        HttpVersion: http2
-        Origins:
-          - Id: 'StoreFinderS3OriginBucket'
-            DomainName: !Sub '${storeFinderFrontendS3BucketName}.s3.${AWS::Region}.amazonaws.com'
-            S3OriginConfig:
-              OriginAccessIdentity: ''
-            OriginAccessControlId: !GetAtt storeFinderCloudFrontOriginAccessControl.Id
-  storeFinderCloudFrontOriginAccessControl:
-    Type: AWS::CloudFront::OriginAccessControl
-    Properties:
-      OriginAccessControlConfig:
-        Description: 'Origin access control for Store Finder S3 bucket'
-        Name: !Sub '${AWS::StackName}-OriginAccessControl'
-        OriginAccessControlOriginType: 's3'
-        SigningBehavior: 'always'
-        SigningProtocol: 'sigv4'
   storeFinderAmazonLocationServiceMap:
     Type: AWS::Location::Map
     Properties:
@@ -184,7 +101,7 @@ Resources:
                   - !Sub 'http://localhost:5174/*'
                   - !Sub 'http://127.0.0.1:5173/*'
                   - !Sub 'http://127.0.0.1:5174/*'
-                  - !Sub 'https://${storeFinderCloudFrontDistribution.DomainName}/*'
+                  - !Sub 'https://*.amplifyapp.com/*'
           - Effect: 'Allow'
             Action:
               - 'geo:GetPlaceIndex'
@@ -232,14 +149,6 @@ Outputs:
     Description: 'Route calculator resource Name.'
     Export:
       Name: !Sub '${AWS::StackName}-StoreFinder-RouteCalculatorName'
-  storeFinderAmazonCloudFrontDistributionUrl:
-    Value: !Sub 'https://${storeFinderCloudFrontDistribution.DomainName}'
-    Description: 'URL to use in your browser to access the application.'
-    Export:
-      Name: !Sub '${AWS::StackName}-StoreFinder-Url'
-  storeFinderFrontendS3BucketUploadLocation:
-    Value: !Sub 's3://${storeFinderFrontendS3Bucket}'
-    Description: 'Upload your frontend files here for hosting.'
 
 
 

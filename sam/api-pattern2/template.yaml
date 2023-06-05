@@ -280,8 +280,7 @@ Resources:
             - - 'http://localhost:5173,'
               - 'http://127.0.0.1:5173,'
               - 'http://localhost:5174,'
-              - 'http://127.0.0.1:5174,'
-              - Fn::ImportValue: !Sub '${storeFinderCoreCloudFormationStackName}-StoreFinder-Url'
+              - 'http://127.0.0.1:5174'
           RDS_TABLE_NAME: !Sub '${storeFinderDatabaseTableName}'
           SECRET_ID: !Ref storeFinderAuroraDBSecret
           RDS_ENDPOINT: !GetAtt storeFinderAuroraInstance.Endpoint.Address
