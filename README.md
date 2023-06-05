@@ -4,7 +4,7 @@
 
 This repository demonstrates how [Amazon Location Service](https://aws.amazon.com/location/)'s Maps, Places and Routing APIs can be used to implement a simple "store finder" web page which lists the physical stores that are most accessible based on a customer's location, along with pertinent store information such as opening hours and address. 
 
-There are 2 back-end approaches being demonstrated by this solution to address 2 different practical use-cases. Both approaches share the identical [Vue.js 3.0](https://vuejs.org/) front-end, which provides the user with the ability to select their current location or select a reference location using the Suggestions API. Depending on the pattern in use, the front-end invokes the corresponding back-end API to return the destination stores nearest to the submitted reference point.
+There are 2 back-end approaches being demonstrated by this solution to address 2 different customer categories. Both approaches share the identical [Vue.js 3.0](https://vuejs.org/) front-end, which provides the user with the ability to select their current location or select a reference location using the Suggestions API. Depending on the pattern in use, the front-end invokes the corresponding back-end API to return the destination stores nearest to the submitted reference point.
 
 ### API patterns
 
@@ -121,6 +121,7 @@ AWS Region [eu-west-1]: <Your AWS Region>
 Parameter storeFinderCoreCloudFormationStackName []: <Name of the Store Finder "Core" Amazon CloudFormation stack>
 Parameter storeFinderAuroraDBMasterUserName [admin_user] <Name of the PostgreSQL admin user account>: 
 Parameter storeFinderDataImportS3BucketName []: <Amazon S3 bucket name used for the data import>
+Parameter storeFinderDatabaseTableName [tbl_postoffices]: <Name of table to be used in PostgreSQL database>
 ```
 3. Confirm that the `Successfully created/updated stack` message is shown. Populate the missing API2 endpoint value in the `.env.local` file with details from the outputs of the deployed Amazon CloudFormation stack.
 ```
@@ -133,7 +134,9 @@ aws s3 cp us-post-offices.csv s3://<storeFinderDataImport3Bucket from the Store 
 ```
 > Note that in order to prevent inadvertent overwriting of the data that resides in the table, the bucket upload S3 bucket is automatically deleted after the first execution of the Pattern 2 `storefinder-datageneration` Lambda function.
 
-### Build and deploy the Vue.js application
+### Build and deploy the Vue.js application using AWS Amplify Hosting
+
+> AWS Amplify hosting without software version control is being used for the purposes of the demo. In real-life applications, it is strongly recommended that you integrate Amplify with a Git-based repository.
 
 1. Confirm that all the missing details have now been populated in the `.env.local` file, then run `npm run build` in the root of the folder structure.
 ```
@@ -144,7 +147,7 @@ npm run build
 cd dist
 ls
 ```
-3. Zip all files that reside in the `/dist` directory.
+3. Zip all files that reside in the `/dist` directory. The exact command may vary depending on the operating system you are using.
 ```
 zip -r store-finder.zip .
 ```
@@ -152,24 +155,26 @@ zip -r store-finder.zip .
 
 > Note that if you make subsequent changes to the `.env.local` file, you will need to rebuild the Vue.js application, and repeat these steps.
 > 
-4. Navigate to AWS Amplify in the AWS Console and select the AWS Amplify app that was created using the "Store Finder - Core" AWS SAM template. Select "Deploy without Git provider" and select "Connect branch"
+4. Navigate to AWS Amplify in the AWS Console and select the AWS Amplify app that was created using the "Store Finder - Core" AWS SAM template. Select "Deploy without Git provider" and select "Connect branch".
 
 ![Configure Amplify 1](images/configure_amplify_app_1.png)
 
-Give the environment a meaningful name, such as `production`, select `drag and drop` as the method, and upload the `store-finder.zip` file created earlier.
+Give the environment a meaningful name, such as `production`, select "drag and drop" as the method, and upload the `store-finder.zip` file created earlier. This will automatically trigger the deployment to make the site available to the public.
 
 ![Configure Amplify 2](images/configure_amplify_app_2.png)
  
 ## Accessing the site
 You can now access the site by visiting the URL of the AWS Amplify hosting environment.
 
+Copy and paste the URL into your machine's browser.
+
 ![Amplify hosting URL](images/configure_amplify_app_3.png)
 
-Copy and paste the URL into your machine's browser.
+The Amazon Location Service and Amazon API Gateway APIs are protected using an Amazon Cognito user and identity pools. You must first create a user account using an email address, and validate the email address, before you are able to use the website.
 
 ![Cognito login screen](images/cognito_login_screen.png)
 
-The Amazon Location Service and Amazon API Gateway APIs are protected using an Amazon Cognito user and identity pools. You must first create a user account using an email address, and validate the email address, before you are able to use the website.
+Once you are registered and authenticated, you will be able to view the landing page.
 
 ![Store Finder screenshot](images/store_finder_screenshot.png)
 
