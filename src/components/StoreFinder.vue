@@ -69,6 +69,7 @@
             <img
               :alt="store.name"
               src="../assets/store.jpeg"
+              style="width: 100%;"
             >
           </template>
           <template #title>

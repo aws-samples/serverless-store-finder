@@ -15,7 +15,7 @@
     "maplibre-gl": "^1.15.3",
     "maplibre-gl-js-amplify": "^3.0.2",
     "primeicons": "^6.0.1",
-    "primevue": "^3.23.0",
+    "primevue": "^3.29.0",
     "vue": "^3.2.45",
     "vue-axios": "^3.5.2",
     "vue-resource": "^1.5.3"
