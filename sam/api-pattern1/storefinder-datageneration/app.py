@@ -14,11 +14,11 @@ dynamodb_client = boto3.resource(
     region_name=AWS_REGION
 )
 table = dynamodb_client.Table(AMAZON_DYNAMODB_TABLE)
+STORES_JSON_FILE = "stores.json"
 
 # Load store data from JSON file
-stores_json = open("stores.json")
-stores = json.load(stores_json)
-stores_json.close()
+with open(STORES_JSON_FILE) as stores_json:
+    stores = json.load(stores_json)
 
 def lambda_handler(event, context):
     """ Lambda function for CloudFormation custom resource. """

@@ -105,7 +105,7 @@ def lambda_handler(event, context):
         elif ((event["httpMethod"]=="GET") and (event["resource"]=="/stores")):
             response_body = destination_stores
             response["statusCode"] = 200
-    elif (event["httpMethod"]=="OPTIONS"):
+    elif event["httpMethod"] == "OPTIONS":
         # If request is an OPTIONS...
         response_body = []
         response["statusCode"] = 200
