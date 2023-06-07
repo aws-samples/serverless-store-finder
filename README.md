@@ -19,9 +19,11 @@ Both methods leverage caching on Amazon API Gateway to ensure frequent requests 
 
 ## Getting started
 
+// TODO: Replace with link to blog post.
+
 ### Prerequisites
 
-- You will require an AWS account, and sufficient AWS IAM permissions to deploy the resources into that account.
+- You will require an AWS account, and sufficient AWS IAM permissions to deploy  resources into that account.
 - The store finder front-end has been developed using the [Vue.js 3.0](https://vuejs.org/) framework. You will need to have [npm](https://www.npmjs.com/package/npm), the JavaScript package manager, installed on your machine.
 
 ### Downloading the code
@@ -38,13 +40,13 @@ git clone https://github.com/aws-samples/serverless-store-finder
 cd serverless-store-finder
 npm install
 ```
-4. Finally, copy the `.env.local.template` file and rename it to`.env.local` so that it is ready to be populated by the outputs from the later AWS SAM template deployments.
+4. Finally, copy the `.env.local.template` file and rename it to `.env.local` so that it is ready to be populated by the outputs from the later AWS SAM template deployments.
 ```
 cp .env.local.template .env.local
 ```
 You are now ready to deploy the AWS SAM templates.
 
-### AWS SAM deployments
+### Deploying the SAM templates
 
 #### Store Finder - Core
 
@@ -59,13 +61,12 @@ sam build
 ```
 sam deploy --guided
 ```
-When prompted enter the details chosen for your environment (you can keep the remainder as defaults):
+3. When prompted enter the details chosen for your environment (you can keep the remainder as defaults):
 ```
 Setting default arguments for 'sam deploy'
 =========================================
 Stack Name [sam-app]: <Your Store Finder "Core" Amazon CloudFormation stack name>
-AWS Region [eu-west-1]: <Your AWS Region>                                  
-Parameter storeFinderFrontendS3BucketName []: <Your unique Amazon S3 bucket name for front-end files hosting>
+AWS Region [eu-west-1]: <Your AWS Region>
 ```
 3. Confirm that the `Successfully created/updated stack` message is shown. Populate the missing Amazon Location Service and Amazon Cognito details in the `.env.local` file with details from the outputs of the deployed Amazon CloudFormation stack.
 ```
@@ -90,7 +91,7 @@ sam build
 ```
 sam deploy --guided
 ```
-When prompted enter the details chosen for your environment (you can keep the remainder as defaults):
+3. When prompted enter the details chosen for your environment (you can keep the remainder as defaults):
 ```
 Setting default arguments for 'sam deploy'
 =========================================
@@ -132,10 +133,10 @@ Parameter storeFinderDatabaseTableName [tbl_postoffices]: <Name of table to be u
 ```
 VITE_APIGATEWAY_ENDPOINT_API2=<storeFinderAPIGatewayEndpoint from Store Finder "API2" Amazon CloudFormation Stack output>
 ```
-> Pattern 2 requires a CSV file to be manually uploded to the newly created Amazon S3 bucket. This will trigger an AWS Lambda function which will automatically insert the records into the PostgreSQL database.
+> Pattern 2 requires a CSV file to be manually uploaded to the newly created Amazon S3 bucket. This will trigger an AWS Lambda function which will automatically insert the records into the PostgreSQL database.
 4. Download, unzip and upload the [us-post-offices.csv](https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/NUKCNA) file (housed in the downloaded zip file) to the Amazon S3 API2 data assets bucket. The `aws s3 cp` command can be used to do this from the folder in which it was downloaded and unzipped.
 ```
-aws s3 cp us-post-offices.csv s3://<storeFinderDataImport3Bucket from the Store Finder "API2" Amazon CloudFormation Stack output>`
+aws s3 cp us-post-offices.csv s3://<storeFinderDataImport3Bucket from the Store Finder "API2" Amazon CloudFormation Stack output>
 ```
 > Note that in order to prevent inadvertent overwriting of the data that resides in the table, the bucket upload S3 bucket is automatically deleted after the first execution of the Pattern 2 `storefinder-datageneration` Lambda function.
 
@@ -158,7 +159,7 @@ zip -r store-finder.zip .
 ```
 > Note that the zip operation needs to be performed inside the `/dist` directory and NOT at the folder-level.
 
-> Note that if you make subsequent changes to the `.env.local` file, you will need to rebuild the Vue.js application, and repeat these steps.
+If you make subsequent changes to the `.env.local` file, you will need to rebuild the Vue.js application, and repeat these steps.
 > 
 4. Navigate to AWS Amplify in the AWS Console and select the AWS Amplify app that was created using the "Store Finder - Core" AWS SAM template. Select "Deploy without Git provider" and select "Connect branch".
 
