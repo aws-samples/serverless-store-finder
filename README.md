@@ -21,7 +21,8 @@ Both methods leverage caching on Amazon API Gateway to ensure frequent requests 
 
 ### Prerequisites
 
-1. Both API patterns are deployed using the [AWS Serverless Application Model (SAM)](https://aws.amazon.com/serverless/sam/). Follow the steps in the [official documentation](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/install-sam-cli.html) to install the latest release of the AWS Serverless Application Model Command Line Interface (CLI) for your operating system.
+1. You will require an AWS account, and AWS IAM permissions to deploy resources into that account.
+2. Both API patterns are deployed using the [AWS Serverless Application Model (SAM)](https://aws.amazon.com/serverless/sam/). Follow the steps in the [official documentation](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/install-sam-cli.html) to install the latest release of the AWS Serverless Application Model Command Line Interface (CLI) for your operating system.
   Once successfully installed, running `sam --version` will return the SAM CLI version.
   >The AWS SAM CLI requires appropriate permissions to provision resources in the chosen AWS account. Ensure that [access key and secret access keys](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/prerequisites.html) have been created using AWS IAM, and that `aws configure` has been used to register them locally on your machine.
 2. The store finder front-end has been developed using the [Vue.js 3.0](https://vuejs.org/) framework. All front-end code, back-end code and AWS SAM templates required by both API patterns are stored in the [serverless-store-finder repository](https://github.com/aws-samples/serverless-store-finder). Run `git clone` to download all required files to your local machine.
