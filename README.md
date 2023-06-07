@@ -21,11 +21,15 @@ Both methods leverage caching on Amazon API Gateway to ensure frequent requests 
 
 ### Prerequisites
 
-1. You will require an AWS account, and sufficient AWS IAM permissions to deploy the resources into that account.
-2. Both API patterns are deployed using the [AWS Serverless Application Model (SAM)](https://aws.amazon.com/serverless/sam/). Follow the steps in the [official documentation](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/install-sam-cli.html) to install the latest release of the AWS Serverless Application Model Command Line Interface (CLI) for your operating system.
+- You will require an AWS account, and sufficient AWS IAM permissions to deploy the resources into that account.
+- The store finder front-end has been developed using the [Vue.js 3.0](https://vuejs.org/) framework. You will need to have [npm](https://www.npmjs.com/package/npm), the JavaScript package manager, installed on your machine.
+
+### Downloading the code
+
+1. Both API patterns are deployed using the [AWS Serverless Application Model (SAM)](https://aws.amazon.com/serverless/sam/). Follow the steps in the [official documentation](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/install-sam-cli.html) to install the latest release of the AWS Serverless Application Model Command Line Interface (CLI) for your operating system.
   Once successfully installed, running `sam --version` will return the SAM CLI version.
-  >The AWS SAM CLI requires appropriate permissions to provision resources in the chosen AWS account. Ensure that [access key and secret access keys](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/prerequisites.html) have been created using AWS IAM, and that `aws configure` has been used to register them locally on your machine.
-2. The store finder front-end has been developed using the [Vue.js 3.0](https://vuejs.org/) framework. All front-end code, back-end code and AWS SAM templates required by both API patterns are stored in the [serverless-store-finder repository](https://github.com/aws-samples/serverless-store-finder). Run `git clone` to download all required files to your local machine.
+  >The AWS SAM CLI requires appropriate permissions to provision resources in the chosen AWS account. Ensure that [access key and secret access keys](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/prerequisites.html) have been created using AWS IAM, and that `aws configure` has been used to register them locally on your machine. 
+2. All front-end code, back-end code and AWS SAM templates required by both API patterns are stored in the [serverless-store-finder repository](https://github.com/aws-samples/serverless-store-finder). Run `git clone` to download all required files to your local machine.
 ```
 git clone https://github.com/aws-samples/serverless-store-finder
 ```
@@ -40,9 +44,9 @@ cp .env.local.template .env.local
 ```
 You are now ready to deploy the AWS SAM templates.
 
-## AWS SAM deployments
+### AWS SAM deployments
 
-### Store Finder - Core
+#### Store Finder - Core
 
 The "Store Finder - Core" AWS SAM template will deploy the shared infrastructure resources required by both patterns, namely the Amazon Location Service map, place index and route calculator resources, and Amazon Cognito user and identity pools. This AWS SAM template will also create an empty AWS Amplify app.
 
@@ -73,7 +77,7 @@ VITE_AMAZON_LOCATION_SERVICE_MAP=<storeFinderAmazonLocationServiceMapName from t
 VITE_AMAZON_LOCATION_SERVICE_PLACES_INDEX=<storeFinderAmazonLocationServicePlaceIndexName from the Store Finder "Core" Amazon CloudFormation stack output>
 ```
 
-### Store Finder - API Pattern 1
+#### Store Finder - API Pattern 1
 
 The "Store Finder - API Pattern 1" AWS SAM template will deploy the back-end API infrastructure and code required by Pattern 1, including the Amazon API Gateway, AWS Lambda functions, and Amazon DynamoDB table. This API is fully functional itself and is not dependent on API Pattern 2.
 
@@ -100,7 +104,7 @@ VITE_APIGATEWAY_ENDPOINT_API1=<storeFinderAPIGatewayEndpoint from the Store Find
 ```
 > The Pattern 1 AWS SAM template houses an [AWS Lambda custom resource](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/template-custom-resources.html) that will automatically load the stores data from the `stores.json` file. No further action is required, and API1 is now ready.
 
-### Store Finder - API Pattern 2
+#### Store Finder - API Pattern 2
 
 The "Store Finder - API Pattern 2" AWS SAM template will deploy the back-end API infrastructure and code required by Pattern 2, including the Amazon API Gateway, AWS Lambda functions, and Amazon Aurora Serverless V2 PostgreSQL database. This API is fully functional itself and is not dependent on API Pattern 1.
 
