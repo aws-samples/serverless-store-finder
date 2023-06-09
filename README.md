@@ -204,7 +204,7 @@ Any CSV file conforming to the same data structure can be uploaded to the Amazon
 
 Both API patterns use Amazon API Gateway with an [AWS Lambda function proxy](https://docs.aws.amazon.com/apigateway/latest/developerguide/set-up-lambda-proxy-integrations.html). As such, CORS headers present in the client requests are analysed and returned by the AWS Lambda function.
 
-If the API endpoints are to be accessed by any other URL than on local host ports 5173 and 5174 (HTTP), or via an Amplify Hosting URL, the AWS SAM templates will need to be modified to include your custom URL. The URLs are declared in the `AWS_ALLOWED_CORS_ORIGINS` environment variable of the AWS Lambda function resource. These reside in the respective API AWS SAM templates.
+If the API endpoints are to be accessed by any other URL than on local host ports 5173 and 5174 (HTTP), or via the Amplify Hosting default domain URL, the AWS SAM templates will need to be modified to include your custom URL. The URLs are declared in the `AWS_ALLOWED_CORS_ORIGINS` environment variable of the AWS Lambda function resource. These reside in the respective API AWS SAM templates.
 
 Additionally, `{Condition: {StringLike: {aws:referer: [] }}}` value of the AWS IAM policy attached to the Amazon Cognito unauthenticated AWS IAM role needs to be enabled to facilitate access to the Amazon Location Service API. This resides in the "Core" AWS SAM template. This [AWS IAM policy condition](https://docs.aws.amazon.com/location/latest/developerguide/authenticating-using-cognito.html) controls whether maps tile are downloaded and displayed.
 

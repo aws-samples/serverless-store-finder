@@ -12,6 +12,7 @@ AMAZON_LOCATION_SERVICE_ROUTE_CALCULATOR = os.environ["AMAZON_LOCATION_SERVICE_R
 # https://docs.aws.amazon.com/location/latest/developerguide/calculate-route-matrix.html#matrix-routing-longer-routes
 AMAZON_LOCATION_SERVICE_MATRIX_ROUTING_BATCH_SIZE = 10
 AWS_ALLOWED_CORS_ORIGINS = os.environ["AWS_ALLOWED_CORS_ORIGINS"].split(",")
+AWS_ALLOWED_CORS_ORIGIN_AMPLIFY = os.environ["AWS_ALLOWED_CORS_ORIGIN_AMPLIFY"]
 # DynamoDB connectivity
 dynamodb_client = boto3.resource(
     "dynamodb",
@@ -29,9 +30,9 @@ def lambda_handler(event, context):
     if event["multiValueHeaders"]["origin"][0] in AWS_ALLOWED_CORS_ORIGINS:
         cors_allow_origin = event["multiValueHeaders"]["origin"][0]
     else:
-        # Allow anything from Amplify Hosting
-        url_string_list = event["multiValueHeaders"]["origin"][0].split('.')
-        if (('amplifyapp' in url_string_list[2]) and ('com' in url_string_list[3])):
+        # Allow Amplify Hosting URL
+        url_string = ".".join(event["multiValueHeaders"]["origin"][0].split('.')[1:4])
+        if AWS_ALLOWED_CORS_ORIGIN_AMPLIFY in url_string:
             cors_allow_origin = event["multiValueHeaders"]["origin"][0]
     # Respond to client requests
     response = {}

@@ -106,7 +106,7 @@ Resources:
                   - !Sub 'http://localhost:5174/*'
                   - !Sub 'http://127.0.0.1:5173/*'
                   - !Sub 'http://127.0.0.1:5174/*'
-                  - !Sub 'https://*.amplifyapp.com/*'
+                  - !Sub 'https://*.${storeFinderAmplifyApp.DefaultDomain}/*'
           - Effect: 'Allow'
             Action:
               - 'geo:GetPlaceIndex'
@@ -154,6 +154,8 @@ Outputs:
     Description: 'Route calculator resource Name.'
     Export:
       Name: !Sub '${AWS::StackName}-StoreFinder-RouteCalculatorName'
-
-
-
+  storeFinderAmplifyAppDefaultDomain:
+    Value: !GetAtt storeFinderAmplifyApp.DefaultDomain
+    Description: 'Amplify app default domain.'
+    Export:
+      Name: !Sub '${AWS::StackName}-StoreFinder-AmplifyAppDefaultDomain'

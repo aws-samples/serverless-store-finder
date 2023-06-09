@@ -14,6 +14,7 @@ sm_client = boto3.client("secretsmanager")
 
 ### Get Environment Variables
 AWS_ALLOWED_CORS_ORIGINS = os.environ["AWS_ALLOWED_CORS_ORIGINS"].split(",")
+AWS_ALLOWED_CORS_ORIGIN_AMPLIFY = os.environ["AWS_ALLOWED_CORS_ORIGIN_AMPLIFY"]
 rds_endpoint = os.environ["RDS_ENDPOINT"]
 table_name = os.environ["RDS_TABLE_NAME"]
 route_calculator = os.environ["LOCATION_ROUTE_CALCULATOR"]
@@ -35,9 +36,9 @@ def lambda_handler(event, context):
     if event["multiValueHeaders"]["origin"][0] in AWS_ALLOWED_CORS_ORIGINS:
         cors_allow_origin = event["multiValueHeaders"]["origin"][0]
     else:
-        # Allow anything from Amplify Hosting
-        url_string_list = event["multiValueHeaders"]["origin"][0].split('.')
-        if (('amplifyapp' in url_string_list[2]) and ('com' in url_string_list[3])):
+        # Allow Amplify Hosting URL
+        url_string = ".".join(event["multiValueHeaders"]["origin"][0].split('.')[1:4])
+        if AWS_ALLOWED_CORS_ORIGIN_AMPLIFY in url_string:
             cors_allow_origin = event["multiValueHeaders"]["origin"][0]
     if (event["httpMethod"]=="POST" and event["path"] == "/stores/nearest" and event["body"]):
         # If this is a POST request with a body containing departure point
