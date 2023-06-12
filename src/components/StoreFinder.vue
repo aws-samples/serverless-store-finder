@@ -57,39 +57,40 @@
         <ProgressSpinner v-if="awaitingAPIResponse" />
       </div>
       <div
-        v-if="destinationLocations.length > 0"
-        style="display: flex; gap: 10px; flex-wrap: wrap; width: 100%; text-align: center;"
+        v-if="(destinationLocations.length > 0) && (Object.keys(departureLocation).length > 0)"
+        style="display: flex; gap: 10px; flex-wrap: wrap; width: 100%; text-align: center; justify-content: center;"
       >
-        <Card
+        <div
           v-for="store in destinationLocations.slice(0, maxResults)"
-          v-if="Object.keys(departureLocation).length > 0"
-          style="width: 25em; float:none; margin:0 auto;"
+          :key="store.name"
         >
-          <template #header>
-            <img
-              :alt="store.name"
-              src="../assets/store.jpeg"
-              style="width: 100%;"
-            >
-          </template>
-          <template #title>
-            {{ store.name }}
-          </template>
-          <template #content>
-            <p v-if="store.Distance">
-              <i class="pi pi-car" /> Distance: {{ Math.trunc(store.Distance) }} km
-            </p>
-            <p v-if="store.DurationSeconds">
-              <i class="pi pi-hourglass" /> Duration: {{ Math.trunc(store.DurationSeconds / 60) }} min by car
-            </p>
-            <p v-if="store.hours">
-              <i class="pi pi-clock" /> Opening hours: {{ store.hours }}
-            </p>
-            <p v-if="store.address">
-              <i class="pi pi-directions" /> {{ store.address }}
-            </p>
-          </template>
-        </Card>
+          <Card style="width: 25em; float:none; margin:0 auto;">
+            <template #header>
+              <img
+                :alt="store.name"
+                src="../assets/store.jpeg"
+                style="width: 100%;"
+              >
+            </template>
+            <template #title>
+              {{ store.name }}
+            </template>
+            <template #content>
+              <p v-if="store.Distance">
+                <i class="pi pi-car" /> Distance: {{ Math.trunc(store.Distance) }} km
+              </p>
+              <p v-if="store.DurationSeconds">
+                <i class="pi pi-hourglass" /> Duration: {{ Math.trunc(store.DurationSeconds / 60) }} min by car
+              </p>
+              <p v-if="store.hours">
+                <i class="pi pi-clock" /> Opening hours: {{ store.hours }}
+              </p>
+              <p v-if="store.address">
+                <i class="pi pi-directions" /> {{ store.address }}
+              </p>
+            </template>
+          </Card>
+        </div>
       </div>
       <div
         id="map"

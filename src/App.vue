@@ -47,7 +47,7 @@
 </script>
 <template>
   <authenticator :login-mechanisms="['email']">
-    <template #default="{ user, signOut }">
+    <template #default="{ signOut }">
       <Menubar>
         hello
         <template #start>
