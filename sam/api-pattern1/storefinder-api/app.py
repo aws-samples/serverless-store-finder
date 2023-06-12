@@ -1,10 +1,13 @@
 """ Lambda function for the API serving incoming store finder requests. """
 
+## Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+## SPDX-License-Identifier: MIT-0
+
 import os
 import json
 import boto3
 
-# Environment specific parameters pulled from Lambda environment variables.
+# Environment specific parameters pulled from Lambda environment variables
 AWS_REGION = os.environ["AWS_REGION"]
 AMAZON_DYNAMODB_TABLE = os.environ["AMAZON_DYNAMODB_TABLE"]
 AMAZON_LOCATION_SERVICE_ROUTE_CALCULATOR = os.environ["AMAZON_LOCATION_SERVICE_ROUTE_CALCULATOR"]

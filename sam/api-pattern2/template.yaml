@@ -3,7 +3,7 @@ AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: 'CloudFormation stack to provision the Store Finder API pattern 2'
 
-Globals: 
+Globals:
   Function:
     Runtime: python3.9
     MemorySize: 512
@@ -21,14 +21,14 @@ Parameters:
     MinLength: 1
     Type: String
     Default: admin_user
-  storeFinderDataImportS3BucketName:
-    Description: 'Name of the Amazon S3 bucket used to host the store file to be imported.'
-    Type: String
-    AllowedPattern: '(?=^.{3,63}$)(^[a-z0-9]+[a-z0-9\-]+[a-z0-9]+$)'
   storeFinderDatabaseTableName:
     Description: 'Name of the Aurora database table.'
     Type: String
     Default: 'tbl_postoffices'
+  storeFinderDataImportS3BucketName:
+    Description: 'Name of the Amazon S3 bucket used to host the store file to be imported.'
+    Type: String
+    AllowedPattern: '(?=^.{3,63}$)(^[a-z0-9]+[a-z0-9\-]+[a-z0-9]+$)'
 
 Resources:
   storeFinderLocationsVPC:
@@ -67,10 +67,10 @@ Resources:
       MapPublicIpOnLaunch: 'false'
   storeFinderLambdaSecurityGroup:
     Type: AWS::EC2::SecurityGroup
-    Properties: 
+    Properties:
       GroupDescription: 'Security group used by the Store Finder Lambda functions'
       VpcId: !Ref storeFinderLocationsVPC
-      SecurityGroupEgress: 
+      SecurityGroupEgress:
         - CidrIp: 0.0.0.0/0
           Description: 'Allow outbound HTTPS traffic on port 443'
           FromPort: 443
@@ -96,7 +96,7 @@ Resources:
             FromPort: -1
             IpProtocol: -1
             ToPort: -1
-      SecurityGroupIngress: 
+      SecurityGroupIngress:
         -   Description: 'Allow inbound access to the PostgreSQL port'
             FromPort: 5432
             ToPort: 5432
@@ -169,7 +169,7 @@ Resources:
       RouteTableId: !Ref storeFinderVPCPublicRouteTable
   storeFinderVPCNatGateway:
     Type: AWS::EC2::NatGateway
-    Properties: 
+    Properties:
       SubnetId: !Ref storeFinderVPCPublicSubnetOne
       AllocationId: !GetAtt storeFinderVPCNATPublicIP.AllocationId
   storeFinderVPCNATPublicIP:
@@ -230,18 +230,18 @@ Resources:
         MinCapacity: 0.5
         MaxCapacity: 8
       DBSubnetGroupName: !Ref storeFinderAuroraDBSubnetGroup
-      VpcSecurityGroupIds: 
+      VpcSecurityGroupIds:
         - !Ref storeFinderAuroraDBSecurityGroup
       Port: 5432
       StorageEncrypted: 'true'
   storeFinderAuroraInstance:
-    Type: AWS::RDS::DBInstance 
+    Type: AWS::RDS::DBInstance
     Properties:
       Engine: aurora-postgresql
       DBInstanceClass: db.serverless
       DBClusterIdentifier: !Ref storeFinderAuroraCluster
       PubliclyAccessible: 'false'
-  storeFinderDataImport3Bucket:
+  storeFinderDataImportS3Bucket:
     Type: AWS::S3::Bucket
     Properties:
       BucketName: !Ref storeFinderDataImportS3BucketName
@@ -265,10 +265,10 @@ Resources:
       Timeout: 15
       ReservedConcurrentExecutions: 50
       Handler: app.lambda_handler
-      VpcConfig: 
-        SecurityGroupIds: 
+      VpcConfig:
+        SecurityGroupIds:
           - !Ref storeFinderLambdaSecurityGroup
-        SubnetIds: 
+        SubnetIds:
           - !Ref storeFinderVPCPrivateSubnetOne
           - !Ref storeFinderVPCPrivateSubnetTwo
       Environment:
@@ -417,10 +417,10 @@ Resources:
       Timeout: 240
       ReservedConcurrentExecutions: 1
       Handler: app.lambda_handler
-      VpcConfig: 
-        SecurityGroupIds: 
+      VpcConfig:
+        SecurityGroupIds:
           - !Ref storeFinderLambdaSecurityGroup
-        SubnetIds: 
+        SubnetIds:
           - !Ref storeFinderVPCPrivateSubnetOne
           - !Ref storeFinderVPCPrivateSubnetTwo
       Environment:
@@ -430,9 +430,7 @@ Resources:
           RDS_ENDPOINT: !GetAtt storeFinderAuroraInstance.Endpoint.Address
       Runtime: python3.9
       Policies:
-        - S3ReadPolicy:
-            BucketName: !Sub "${storeFinderDataImportS3BucketName}"
-        - VPCAccessPolicy: {} 
+        - VPCAccessPolicy: {}
         - AWSSecretsManagerGetSecretValuePolicy:
             SecretArn: !Ref storeFinderAuroraDBSecret
         - Version: 2012-10-17
@@ -440,11 +438,11 @@ Resources:
             - Effect: 'Allow'
               Action:
                 - 's3:DeleteBucket'
-              Resource: !Sub "arn:${AWS::Partition}:s3:::${storeFinderDataImportS3BucketName}"
+              Resource: !Sub 'arn:${AWS::Partition}:s3:::${storeFinderDataImportS3BucketName}'
             - Effect: 'Allow'
               Action:
                 - 's3:DeleteObject'
-              Resource: !Sub "arn:${AWS::Partition}:s3:::${storeFinderDataImportS3BucketName}/*"
+              Resource: !Sub 'arn:${AWS::Partition}:s3:::${storeFinderDataImportS3BucketName}/*'
             - Effect: 'Allow'
               Action:
                 - 'logs:CreateLogGroup'
@@ -454,22 +452,77 @@ Resources:
                 - 'logs:CreateLogStream'
                 - 'logs:PutLogEvents'
               Resource: !Sub 'arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${AWS::StackName}-StoreFinder-DataGeneration:*'
+            - Effect: 'Allow'
+              Action:
+                - 's3:GetObject'
+              Resource: !Sub 'arn:${AWS::Partition}:s3:::${storeFinderDataImportS3BucketName}/*'
       Events:
         FileUpload:
           Type: S3
           Properties:
-            Bucket: !Ref storeFinderDataImport3Bucket
+            Bucket: !Ref storeFinderDataImportS3Bucket
             Events: s3:ObjectCreated:*
-            Filter: 
+            Filter:
               S3Key:
                 Rules:
                   - Name: suffix
                     Value: '.csv'
+  storeFinderLambdaDataGenUploadLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${AWS::StackName}-StoreFinder-DataGenerationUpload'
+      RetentionInDays: 7
+  storeFinderLambdaFunctionDataGenUpload:
+    Type: AWS::Serverless::Function
+    DependsOn: storeFinderLambdaDataGenUploadLogGroup
+    Properties:
+      FunctionName: !Sub '${AWS::StackName}-StoreFinder-DataGenerationUpload'
+      CodeUri: './storefinder-datageneration-upload/'
+      Description: 'Uploads data file to S3 bucket'
+      MemorySize: 256
+      Timeout: 240
+      ReservedConcurrentExecutions: 1
+      Handler: app.lambda_handler
+      Environment:
+        Variables:
+          S3_BUCKET: !Ref storeFinderDataImportS3BucketName
+      Runtime: python3.9
+      Policies:
+        - Version: 2012-10-17
+          Statement:
+            - Effect: 'Allow'
+              Action:
+                - 'logs:CreateLogGroup'
+              Resource: !Sub 'arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:*'
+            - Effect: 'Allow'
+              Action:
+                - 'logs:CreateLogStream'
+                - 'logs:PutLogEvents'
+              Resource: !Sub 'arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${AWS::StackName}-StoreFinder-DataGenerationUpload:*'
+            - Effect: 'Allow'
+              Action:
+                - 's3:PutObject'
+              Resource: !Sub 'arn:${AWS::Partition}:s3:::${storeFinderDataImportS3BucketName}/*'
+  storeFinderDataGenerationUpload:
+    Type: AWS::CloudFormation::CustomResource
+    DependsOn:
+      - storeFinderAuroraInstance
+      - storeFinderAuroraCluster
+      - storeFinderLambdaFunctionDataGen
+      - storeFinderDataImportS3Bucket
+    Version: '1.0'
+    Properties:
+      ServiceToken: !GetAtt storeFinderLambdaFunctionDataGenUpload.Arn
 
 Outputs:
   storeFinderAPIGatewayEndpoint:
     Value: !Sub 'https://${storeFinderAPIGateway}.execute-api.${AWS::Region}.amazonaws.com/${storeFinderAPIGatewayStage}/stores'
     Description: 'API endpoint for the Store Finder backend. Call this from your frontend application.'
-  storeFinderDataImport3Bucket:
-    Value: !Sub 's3://${storeFinderDataImport3Bucket}'
+  storeFinderDataImportS3Bucket:
+    Value: !Sub 's3://${storeFinderDataImportS3Bucket}'
     Description: 'S3 bucket location for data file CSV.'
+  storeFinderDataGenerationUploadResult:
+    Value: !GetAtt
+      - storeFinderDataGenerationUpload
+      - message
+    Description: 'Message from data generator upload. This should confirm that upload to bucket was successful..'

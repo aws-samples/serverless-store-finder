@@ -15,7 +15,7 @@ Both methods leverage caching on Amazon API Gateway to ensure frequent requests 
 
 ### Solution overview
 
-![Solution overview](images/architecture_diagram_v0.6.png)
+![Solution overview](images/architecture_diagram_v0.7.png)
 
 ## Getting started
 
@@ -70,7 +70,7 @@ AWS Region [eu-west-1]: <Your AWS Region>
 ```
 3. Confirm that the `Successfully created/updated stack` message is shown. Populate the missing Amazon Location Service and Amazon Cognito details in the `.env.local` file with details from the outputs of the deployed Amazon CloudFormation stack.
 ```
-VITE_AWS_REGION=<You AWS Region>
+VITE_AWS_REGION=<Your AWS Region>
 VITE_AMAZON_COGNITO_IDENTITY_POOL_NAME=<storeFinderAmazonCognitoIdentityPoolName from the Store Finder "Core" Amazon CloudFormation stack output>
 VITE_AMAZON_COGNITO_USER_POOL_NAME=<storeFinderAmazonCognitoUserPoolName from the Store Finder "Core" Amazon CloudFormation stack output>
 VITE_AMAZON_COGNITO_USER_POOL_CLIENT_NAME=<storeFinderAmazonCognitoUserPoolClientName from the Store Finder "Core" Amazon CloudFormation stack output>
@@ -160,7 +160,7 @@ zip -r store-finder.zip .
 > Note that the zip operation needs to be performed inside the `/dist` directory and NOT at the folder-level.
 
 If you make subsequent changes to the `.env.local` file, you will need to rebuild the Vue.js application, and repeat these steps.
-> 
+
 4. Navigate to AWS Amplify in the AWS Console and select the AWS Amplify app that was created using the "Store Finder - Core" AWS SAM template. Select "Deploy without Git provider" and select "Connect branch".
 
 ![Configure Amplify 1](images/configure_amplify_app_1.png)
@@ -196,7 +196,7 @@ If you would like to use your own data, update this file before the AWS SAM temp
 
 ### API Pattern 2
 
-Population of the data for API2 takes place by uploading a CSV file to the Amazon S3 bucket designated for the data asset. The demo uses the [us-post-offices.csv](https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/NUKCNA) file housed in the downloaded zip file.
+Population of the data for API2 takes place by an automatic upload of the reference CSV file to the Amazon S3 bucket designated for the data asset. This is triggered through a Lambda custom resource, `storefinder-datageneration-upload`. The demo uses the [us-post-offices.csv](https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/NUKCNA) file housed in the downloaded zip file. The bucket has an event notification configured which triggers a second Lambda function, `storefinder-datageneration`, when the file has been uploaded. This function uploads the file content into the PostgreSQL database table.
 
 Any CSV file conforming to the same data structure can be uploaded to the Amazon S3 bucket to populate the PostgreSQL database. The Amazon CloudWatch Logs log stream for the data generation AWS Lambda function will display its progress.
 
