@@ -149,7 +149,7 @@ def lambda_handler(event, context):
             body = [dict(zip(keys, closest_locations[n])) for n in range(len(closest_locations))]
         else:
             body = [dict(zip(keys, closest_locations[n])) for n in range(max_results)]
-    elif (event["httpMethod"]=="OPTIONS"):
+    elif event["httpMethod"]=="OPTIONS":
         # If request is an OPTIONS...
         body = []
     myheaders = {

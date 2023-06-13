@@ -106,7 +106,6 @@
   import { Geo, API, Auth } from "aws-amplify";
   import maplibregl from "maplibre-gl";
   import "maplibre-gl/dist/maplibre-gl.css"
-  import axios from "axios";
 
   export default {
     name: "StoreFinder",
