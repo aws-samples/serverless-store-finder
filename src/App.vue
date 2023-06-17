@@ -49,7 +49,6 @@
   <authenticator :login-mechanisms="['email']">
     <template #default="{ signOut }">
       <Menubar>
-        hello
         <template #start>
           <i class="pi pi-github" /> Find the code on <a
             href="https://github.com/aws-samples/serverless-store-finder"

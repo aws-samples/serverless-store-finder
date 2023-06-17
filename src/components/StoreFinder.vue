@@ -313,7 +313,14 @@
             countries: [countryCode]
           }
           Geo.searchForSuggestions(text.query, searchForSuggestionsOptions).then((results) => {
-            this.suggestedDeparturePlaces = results
+            this.suggestedDeparturePlaces = []
+              results.forEach((result) => {
+                // Restrict down to places with a placeId
+                if (typeof result.placeId !== "undefined") {
+                  this.suggestedDeparturePlaces.push(result)
+                }
+              }
+            )
           }).catch((error) => {
             console.log(error)
           })
