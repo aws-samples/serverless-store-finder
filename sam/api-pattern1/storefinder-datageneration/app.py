@@ -6,8 +6,20 @@ custom resource during stack provisioning.
 ## Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 ## SPDX-License-Identifier: MIT-0
 
+import os
 import json
 import cfnresponse
+import boto3
+
+# Environment specific parameters pulled from environment variables
+AWS_REGION = os.environ["AWS_REGION"]
+AMAZON_DYNAMODB_TABLE = os.environ["AMAZON_DYNAMODB_TABLE"]
+# DynamoDB connectivity
+dynamodb_client = boto3.resource(
+    "dynamodb",
+    region_name=AWS_REGION
+)
+table = dynamodb_client.Table(AMAZON_DYNAMODB_TABLE)
 
 # Reference JSON file bundled with the function code
 STORES_JSON_FILE = "stores.json"
@@ -19,21 +31,6 @@ def lambda_handler(event, context):
         cfnresponse.send(event, context, cfnresponse.SUCCESS, response)
     if event["RequestType"] == "Create":
         try:
-            # Importing modules inside of exception handling to
-            # report back to CloudFormation if there are any
-            # errors with the import steps
-            import os       # pylint: disable=import-outside-toplevel
-            import boto3    # pylint: disable=import-outside-toplevel
-
-            # Environment specific parameters pulled from environment variables
-            AWS_REGION = os.environ["AWS_REGION"]
-            AMAZON_DYNAMODB_TABLE = os.environ["AMAZON_DYNAMODB_TABLE"]
-            # DynamoDB connectivity
-            dynamodb_client = boto3.resource(
-                "dynamodb",
-                region_name=AWS_REGION
-            )
-            table = dynamodb_client.Table(AMAZON_DYNAMODB_TABLE)
             # Load store data from JSON file
             with open(STORES_JSON_FILE) as stores_json:
                 stores = json.load(stores_json)

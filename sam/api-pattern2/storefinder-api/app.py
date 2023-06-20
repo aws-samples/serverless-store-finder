@@ -31,7 +31,7 @@ password = secret_dict["password"]
 keys = ["id", "name", "hours", "location", "Distance", "DurationSeconds"]
 
 def lambda_handler(event, context):
-    """ Lambda handler for OPTIONS/POST requests. """
+    """ Lambda handler for POST requests. """
     ### Load Event Data
     cors_allow_origin = None
     if event["multiValueHeaders"]["origin"][0] in AWS_ALLOWED_CORS_ORIGINS:
@@ -149,14 +149,11 @@ def lambda_handler(event, context):
             body = [dict(zip(keys, closest_locations[n])) for n in range(len(closest_locations))]
         else:
             body = [dict(zip(keys, closest_locations[n])) for n in range(max_results)]
-    elif event["httpMethod"]=="OPTIONS":
-        # If request is an OPTIONS...
-        body = []
     myheaders = {
-		"Access-Control-Allow-Headers": "Content-Type,Authorization",
-		"Access-Control-Allow-Origin": cors_allow_origin,
-		"Access-Control-Allow-Methods": "POST,OPTIONS"
-	}
+        "Access-Control-Allow-Origin": cors_allow_origin,
+        "Access-Control-Allow-Methods": "POST,OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token"
+    }
     ### Return a body to API Gateway
     response = {
         "statusCode": 200,

@@ -1,2 +1,2 @@
-aws-psycopg2
+psycopg2-binary
 boto3

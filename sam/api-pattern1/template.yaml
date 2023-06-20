@@ -92,7 +92,10 @@ Resources:
           AMAZON_DYNAMODB_TABLE: !Ref storeFinderDynamoDBTable
           AMAZON_LOCATION_SERVICE_ROUTE_CALCULATOR:
             Fn::ImportValue: !Sub '${storeFinderCoreCloudFormationStackName}-StoreFinder-RouteCalculatorName'
-          AWS_ALLOWED_CORS_ORIGINS: !Join
+          AWS_ALLOWED_CORS_ORIGINS:
+            # Following entries are useful for local development.
+            # Update before using the solution in production.
+            !Join
             - ''
             - - 'http://localhost:5173,'
               - 'http://127.0.0.1:5173,'
@@ -194,9 +197,26 @@ Resources:
       AuthorizationType: NONE
       HttpMethod: OPTIONS
       Integration:
-        IntegrationHttpMethod: POST
-        Type: AWS_PROXY
-        Uri: !Sub 'arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${storeFinderAPILambdaFunction.Arn}/invocations'
+        IntegrationResponses:
+          - StatusCode: 200
+            ResponseParameters:
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+              method.response.header.Access-Control-Allow-Methods: "'GET,OPTIONS'"
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+            ResponseTemplates:
+              application/json: ''
+        PassthroughBehavior: WHEN_NO_MATCH
+        RequestTemplates:
+          application/json: '{"statusCode": 200}'
+        Type: MOCK
+      MethodResponses:
+        - StatusCode: 200
+          ResponseModels:
+            application/json: 'Empty'
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Headers: false
+            method.response.header.Access-Control-Allow-Methods: false
+            method.response.header.Access-Control-Allow-Origin: false
       ResourceId: !Ref storeFinderAPIGatewayProxyResource
       RestApiId: !Ref storeFinderAPIGateway
   storeFinderAPIGatewayMethodNearestPost:
@@ -223,9 +243,26 @@ Resources:
       AuthorizationType: NONE
       HttpMethod: OPTIONS
       Integration:
-        IntegrationHttpMethod: POST
-        Type: AWS_PROXY
-        Uri: !Sub 'arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${storeFinderAPILambdaFunction.Arn}/invocations'
+        IntegrationResponses:
+          - StatusCode: 200
+            ResponseParameters:
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+              method.response.header.Access-Control-Allow-Methods: "'PUT,OPTIONS'"
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+            ResponseTemplates:
+              application/json: ''
+        PassthroughBehavior: WHEN_NO_MATCH
+        RequestTemplates:
+          application/json: '{"statusCode": 200}'
+        Type: MOCK
+      MethodResponses:
+        - StatusCode: 200
+          ResponseModels:
+            application/json: 'Empty'
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Headers: false
+            method.response.header.Access-Control-Allow-Methods: false
+            method.response.header.Access-Control-Allow-Origin: false
       ResourceId: !Ref storeFinderAPIGatewayProxyResourceNearest
       RestApiId: !Ref storeFinderAPIGateway
   storeFinderAPIGatewayDeployment:
@@ -258,13 +295,6 @@ Resources:
       FunctionName: !Ref storeFinderAPILambdaFunction
       Principal: 'apigateway.amazonaws.com'
       SourceArn: !Sub 'arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${storeFinderAPIGateway}/*/GET/stores'
-  storeFinderLambdaApiGatewayInvokeOptions:
-    Type: AWS::Lambda::Permission
-    Properties:
-      Action: 'lambda:InvokeFunction'
-      FunctionName: !Ref storeFinderAPILambdaFunction
-      Principal: 'apigateway.amazonaws.com'
-      SourceArn: !Sub 'arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${storeFinderAPIGateway}/*/OPTIONS/stores'
   storeFinderLambdaApiGatewayInvokeNearestPost:
     Type: AWS::Lambda::Permission
     Properties:
@@ -272,13 +302,6 @@ Resources:
       FunctionName: !Ref storeFinderAPILambdaFunction
       Principal: 'apigateway.amazonaws.com'
       SourceArn: !Sub 'arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${storeFinderAPIGateway}/*/POST/stores/nearest'
-  storeFinderLambdaApiGatewayInvokeNearestOptions:
-    Type: AWS::Lambda::Permission
-    Properties:
-      Action: 'lambda:InvokeFunction'
-      FunctionName: !Ref storeFinderAPILambdaFunction
-      Principal: 'apigateway.amazonaws.com'
-      SourceArn: !Sub 'arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${storeFinderAPIGateway}/*/OPTIONS/stores/nearest'
   storeFinderApiGatewayAuthorizer:
     Type: AWS::ApiGateway::Authorizer
     Properties:

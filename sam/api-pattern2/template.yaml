@@ -25,10 +25,6 @@ Parameters:
     Description: 'Name of the Aurora database table.'
     Type: String
     Default: 'tbl_postoffices'
-  storeFinderDataImportS3BucketName:
-    Description: 'Name of the Amazon S3 bucket used to host the store file to be imported.'
-    Type: String
-    AllowedPattern: '(?=^.{3,63}$)(^[a-z0-9]+[a-z0-9\-]+[a-z0-9]+$)'
 
 Resources:
   storeFinderLocationsVPC:
@@ -241,14 +237,6 @@ Resources:
       DBInstanceClass: db.serverless
       DBClusterIdentifier: !Ref storeFinderAuroraCluster
       PubliclyAccessible: 'false'
-  storeFinderDataImportS3Bucket:
-    Type: AWS::S3::Bucket
-    Properties:
-      BucketName: !Ref storeFinderDataImportS3BucketName
-      BucketEncryption:
-        ServerSideEncryptionConfiguration:
-          - ServerSideEncryptionByDefault:
-              SSEAlgorithm: 'AES256'
   storeFinderAPILambdaLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
@@ -260,7 +248,7 @@ Resources:
     Properties:
       FunctionName: !Sub '${AWS::StackName}-StoreFinder-API'
       CodeUri: './storefinder-api/'
-      Description: 'Queries PostgreSQL database and finds nearest points'
+      Description: 'Queries PostgreSQL database and finds nearest stores.'
       MemorySize: 256
       Timeout: 15
       ReservedConcurrentExecutions: 50
@@ -275,7 +263,10 @@ Resources:
         Variables:
           LOCATION_ROUTE_CALCULATOR:
             Fn::ImportValue: !Sub '${storeFinderCoreCloudFormationStackName}-StoreFinder-RouteCalculatorName'
-          AWS_ALLOWED_CORS_ORIGINS: !Join
+          AWS_ALLOWED_CORS_ORIGINS:
+            # Following entries are useful for local development.
+            # Update before using the solution in production.
+            !Join
             - ''
             - - 'http://localhost:5173,'
               - 'http://127.0.0.1:5173,'
@@ -353,9 +344,26 @@ Resources:
       AuthorizationType: NONE
       HttpMethod: OPTIONS
       Integration:
-        IntegrationHttpMethod: POST
-        Type: AWS_PROXY
-        Uri: !Sub 'arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${storeFinderLambdaFunctionAPI.Arn}/invocations'
+        IntegrationResponses:
+          - StatusCode: 200
+            ResponseParameters:
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+              method.response.header.Access-Control-Allow-Methods: "'POST,OPTIONS'"
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+            ResponseTemplates:
+              application/json: ''
+        PassthroughBehavior: WHEN_NO_MATCH
+        RequestTemplates:
+          application/json: '{"statusCode": 200}'
+        Type: MOCK
+      MethodResponses:
+        - StatusCode: 200
+          ResponseModels:
+            application/json: 'Empty'
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Headers: false
+            method.response.header.Access-Control-Allow-Methods: false
+            method.response.header.Access-Control-Allow-Origin: false
       ResourceId: !Ref storeFinderAPIGatewayProxyResourceNearest
       RestApiId: !Ref storeFinderAPIGateway
   storeFinderAPIGatewayDeployment:
@@ -384,13 +392,6 @@ Resources:
       FunctionName: !Ref storeFinderLambdaFunctionAPI
       Principal: 'apigateway.amazonaws.com'
       SourceArn: !Sub 'arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${storeFinderAPIGateway}/*/POST/stores/nearest'
-  storeFinderLambdaApiGatewayInvokeNearestOptions:
-    Type: AWS::Lambda::Permission
-    Properties:
-      Action: 'lambda:InvokeFunction'
-      FunctionName: !Ref storeFinderLambdaFunctionAPI
-      Principal: 'apigateway.amazonaws.com'
-      SourceArn: !Sub 'arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${storeFinderAPIGateway}/*/OPTIONS/stores/nearest'
   storeFinderApiGatewayAuthorizer:
     Type: AWS::ApiGateway::Authorizer
     Properties:
@@ -437,14 +438,6 @@ Resources:
           Statement:
             - Effect: 'Allow'
               Action:
-                - 's3:DeleteBucket'
-              Resource: !Sub 'arn:${AWS::Partition}:s3:::${storeFinderDataImportS3BucketName}'
-            - Effect: 'Allow'
-              Action:
-                - 's3:DeleteObject'
-              Resource: !Sub 'arn:${AWS::Partition}:s3:::${storeFinderDataImportS3BucketName}/*'
-            - Effect: 'Allow'
-              Action:
                 - 'logs:CreateLogGroup'
               Resource: !Sub 'arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:*'
             - Effect: 'Allow'
@@ -452,77 +445,22 @@ Resources:
                 - 'logs:CreateLogStream'
                 - 'logs:PutLogEvents'
               Resource: !Sub 'arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${AWS::StackName}-StoreFinder-DataGeneration:*'
-            - Effect: 'Allow'
-              Action:
-                - 's3:GetObject'
-              Resource: !Sub 'arn:${AWS::Partition}:s3:::${storeFinderDataImportS3BucketName}/*'
-      Events:
-        FileUpload:
-          Type: S3
-          Properties:
-            Bucket: !Ref storeFinderDataImportS3Bucket
-            Events: s3:ObjectCreated:*
-            Filter:
-              S3Key:
-                Rules:
-                  - Name: suffix
-                    Value: '.csv'
-  storeFinderLambdaDataGenUploadLogGroup:
-    Type: AWS::Logs::LogGroup
-    Properties:
-      LogGroupName: !Sub '/aws/lambda/${AWS::StackName}-StoreFinder-DataGenerationUpload'
-      RetentionInDays: 7
-  storeFinderLambdaFunctionDataGenUpload:
-    Type: AWS::Serverless::Function
-    DependsOn: storeFinderLambdaDataGenUploadLogGroup
-    Properties:
-      FunctionName: !Sub '${AWS::StackName}-StoreFinder-DataGenerationUpload'
-      CodeUri: './storefinder-datageneration-upload/'
-      Description: 'Uploads data file to S3 bucket'
-      MemorySize: 256
-      Timeout: 240
-      ReservedConcurrentExecutions: 1
-      Handler: app.lambda_handler
-      Environment:
-        Variables:
-          S3_BUCKET: !Ref storeFinderDataImportS3BucketName
-      Runtime: python3.9
-      Policies:
-        - Version: 2012-10-17
-          Statement:
-            - Effect: 'Allow'
-              Action:
-                - 'logs:CreateLogGroup'
-              Resource: !Sub 'arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:*'
-            - Effect: 'Allow'
-              Action:
-                - 'logs:CreateLogStream'
-                - 'logs:PutLogEvents'
-              Resource: !Sub 'arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${AWS::StackName}-StoreFinder-DataGenerationUpload:*'
-            - Effect: 'Allow'
-              Action:
-                - 's3:PutObject'
-              Resource: !Sub 'arn:${AWS::Partition}:s3:::${storeFinderDataImportS3BucketName}/*'
-  storeFinderDataGenerationUpload:
+  storeFinderDataGeneration:
     Type: AWS::CloudFormation::CustomResource
     DependsOn:
       - storeFinderAuroraInstance
       - storeFinderAuroraCluster
       - storeFinderLambdaFunctionDataGen
-      - storeFinderDataImportS3Bucket
     Version: '1.0'
     Properties:
-      ServiceToken: !GetAtt storeFinderLambdaFunctionDataGenUpload.Arn
+      ServiceToken: !GetAtt storeFinderLambdaFunctionDataGen.Arn
 
 Outputs:
   storeFinderAPIGatewayEndpoint:
     Value: !Sub 'https://${storeFinderAPIGateway}.execute-api.${AWS::Region}.amazonaws.com/${storeFinderAPIGatewayStage}/stores'
     Description: 'API endpoint for the Store Finder backend. Call this from your frontend application.'
-  storeFinderDataImportS3Bucket:
-    Value: !Sub 's3://${storeFinderDataImportS3Bucket}'
-    Description: 'S3 bucket location for data file CSV.'
-  storeFinderDataGenerationUploadResult:
+  storeFinderDataGenerationResult:
     Value: !GetAtt
-      - storeFinderDataGenerationUpload
+      - storeFinderDataGeneration
       - message
-    Description: 'Message from data generator upload. This should confirm that upload to bucket was successful..'
+    Description: 'Message from data generator. This should confirm that upload to bucket was successful.'

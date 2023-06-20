@@ -102,10 +102,13 @@ Resources:
             Condition:
               StringLike:
                 aws:referer:
+                  # Following entries are useful for local development using Vite.
+                  # Remove before using the solution in production.
                   - !Sub 'http://localhost:5173/*'
                   - !Sub 'http://localhost:5174/*'
                   - !Sub 'http://127.0.0.1:5173/*'
                   - !Sub 'http://127.0.0.1:5174/*'
+                  # Required for site deployed to Amplify Hosting.
                   - !Sub 'https://*.${storeFinderAmplifyApp.DefaultDomain}/*'
           - Effect: 'Allow'
             Action:

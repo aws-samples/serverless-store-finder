@@ -24,9 +24,11 @@ dynamodb_client = boto3.resource(
 # Initialising AWS SDK clients
 table = dynamodb_client.Table(AMAZON_DYNAMODB_TABLE)
 location_client = boto3.client("location")
+# Lambda execution environment cache to store all stores
+all_stores_cache = None
 
 def lambda_handler(event, context):
-    """ Lambda handler for GET/OPTIONS/POST requests. """
+    """ Lambda handler for GET/POST requests. """
     # pylint: disable=too-many-locals, unused-argument
     # Handle CORS headers
     cors_allow_origin = None
@@ -42,14 +44,22 @@ def lambda_handler(event, context):
     if ((event["httpMethod"]=="POST") or (event["httpMethod"]=="GET")):
         # Respond to POST and GET requests
         # Retrieve all possible store locations from DynamoDB table
-        scan_paginator = dynamodb_client.meta.client.get_paginator("scan")
-        page_iterator = scan_paginator.paginate(
-            TableName=AMAZON_DYNAMODB_TABLE,
-            ProjectionExpression="id,storeName,storeAddress,storeHours,storeDistance,storeLocation"
-        )
-        all_stores = []
-        for page in page_iterator:
-            all_stores.extend(page["Items"])
+        # if these do not already exist in the local Lambda execution
+        # environment cache
+        global all_stores_cache
+        if all_stores_cache:
+            all_stores = all_stores_cache
+            print("Local cache hit! (" + str(len(all_stores_cache)) + " stores)")
+        else:
+            scan_paginator = dynamodb_client.meta.client.get_paginator("scan")
+            page_iterator = scan_paginator.paginate(
+                TableName=AMAZON_DYNAMODB_TABLE,
+                ProjectionExpression="id,storeName,storeAddress,storeHours,storeDistance,storeLocation"
+            )
+            all_stores = []
+            for page in page_iterator:
+                all_stores.extend(page["Items"])
+            all_stores_cache = all_stores
         destination_stores = []
         for store in all_stores:
             destination_stores.append(
@@ -109,14 +119,10 @@ def lambda_handler(event, context):
         elif ((event["httpMethod"]=="GET") and (event["resource"]=="/stores")):
             response_body = destination_stores
             response["statusCode"] = 200
-    elif event["httpMethod"] == "OPTIONS":
-        # If request is an OPTIONS...
-        response_body = []
-        response["statusCode"] = 200
     response["body"] = json.dumps(response_body)
     response["headers"] = {
         "Access-Control-Allow-Origin": cors_allow_origin,
-        "Access-Control-Allow-Methods": "POST,OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type,Authorization"
+        "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token"
     }
     return response
