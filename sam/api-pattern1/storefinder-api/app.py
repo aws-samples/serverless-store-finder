@@ -39,7 +39,7 @@ app = APIGatewayRestResolver(cors=cors_config)
 def get_all_store_locations():
     """ Retrieve all store locations from DynamoDB table. """
     # pylint: disable=too-many-locals, unused-argument
-    global all_stores_cache
+    global all_stores_cache     # pylint: disable=global-statement
     if all_stores_cache:
         all_stores = all_stores_cache
         print("Local cache hit! (" + str(len(all_stores_cache)) + " stores)")
@@ -100,7 +100,7 @@ def post_nearest_stores():
         except location_client.exceptions.ValidationException as error:
             error_message = "Error: " + str(error.response["Error"])
             print(error_message)
-            raise BadRequestError(
+            raise Exception(
                 error_message +
                 " " +
                 "Check Amazon Location Service documentation for location data provider "+

@@ -450,7 +450,6 @@ Resources:
     DependsOn:
       - storeFinderAuroraInstance
       - storeFinderAuroraCluster
-      - storeFinderLambdaFunctionDataGen
       - storeFinderAuroraDBSecret
     Version: '1.0'
     Properties:

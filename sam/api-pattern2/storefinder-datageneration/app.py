@@ -58,6 +58,7 @@ def execute_values(conn, cursor, data_frame, table):
 
 def lambda_handler(event, context):
     """ Lambda function for data generation using uploaded CSV in S3 bucket. """
+    response = {}
     if event["RequestType"] == "Delete":
         cfnresponse.send(event, context, cfnresponse.SUCCESS, response)
     if event["RequestType"] == "Create":
