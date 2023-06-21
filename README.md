@@ -15,7 +15,7 @@ Both methods leverage caching on Amazon API Gateway to ensure frequent requests 
 
 ### Solution overview
 
-![Solution overview](images/architecture_diagram_v0.7.png)
+![Solution overview](images/architecture_diagram_v0.8.png)
 
 ## Getting started
 
@@ -196,15 +196,13 @@ If you would like to use your own data, update this file before the AWS SAM temp
 
 ### API Pattern 2
 
-Population of the data for API2 takes place by an automatic upload of the reference CSV file to the Amazon S3 bucket designated for the data asset. This is triggered through a Lambda custom resource, `storefinder-datageneration-upload`. The demo uses the [us-post-offices.csv](https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/NUKCNA) file housed in the downloaded zip file. The bucket has an event notification configured which triggers a second Lambda function, `storefinder-datageneration`, when the file has been uploaded. This function uploads the file content into the PostgreSQL database table.
-
-Any CSV file conforming to the same data structure can be uploaded to the Amazon S3 bucket to populate the PostgreSQL database. The Amazon CloudWatch Logs log stream for the data generation AWS Lambda function will display its progress.
+During the deployment of the AWS SAM template for API 1, an AWS Lambda custom resource is invoked by the Amazon CloudFormation stack provisioning process. This `storefinder-datageneration` AWS Lambda function loads store data from the [us-post-offices.csv](https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/NUKCNA) file found in `sam/api-pattern2/storefinder-datageneration`.
 
 ## Cross-Origin Resource Sharing (CORS)
 
 Both API patterns use Amazon API Gateway with an [AWS Lambda function proxy](https://docs.aws.amazon.com/apigateway/latest/developerguide/set-up-lambda-proxy-integrations.html). As such, CORS headers present in the client requests are analysed and returned by the AWS Lambda function.
 
-If the API endpoints are to be accessed by any other URL than on local host ports 5173 and 5174 (HTTP), or via the Amplify Hosting default domain URL, the AWS SAM templates will need to be modified to include your custom URL. The URLs are declared in the `AWS_ALLOWED_CORS_ORIGINS` environment variable of the AWS Lambda function resource. These reside in the respective API AWS SAM templates.
+If the API endpoints are to be accessed by any other URL than on local host ports 5173 and 5174 (HTTP), or via the Amplify Hosting URL, the AWS SAM templates will need to be modified to include your custom URL. The URLs are declared in the `AWS_ALLOWED_CORS_ORIGINS` environment variable of the AWS Lambda function resource. These reside in the respective API AWS SAM templates.
 
 Additionally, `{Condition: {StringLike: {aws:referer: [] }}}` value of the AWS IAM policy attached to the Amazon Cognito unauthenticated AWS IAM role needs to be enabled to facilitate access to the Amazon Location Service API. This resides in the "Core" AWS SAM template. This [AWS IAM policy condition](https://docs.aws.amazon.com/location/latest/developerguide/authenticating-using-cognito.html) controls whether maps tile are downloaded and displayed.
 

@@ -9,6 +9,16 @@ Globals:
     MemorySize: 512
     Timeout: 15
 
+Parameters:
+  storeFinderAmplifySubdomain:
+    AllowedPattern: '[a-z]+'
+    ConstraintDescription: Must be small-case letters.
+    Description: 'Amplify environment subdomain name.'
+    MaxLength: 16
+    MinLength: 1
+    Type: String
+    Default: demo
+
 Resources:
   storeFinderAmplifyApp:
     Type: AWS::Amplify::App
@@ -109,7 +119,7 @@ Resources:
                   - !Sub 'http://127.0.0.1:5173/*'
                   - !Sub 'http://127.0.0.1:5174/*'
                   # Required for site deployed to Amplify Hosting.
-                  - !Sub 'https://*.${storeFinderAmplifyApp.DefaultDomain}/*'
+                  - !Sub 'https://${storeFinderAmplifySubdomain}.${storeFinderAmplifyApp.DefaultDomain}/*'
           - Effect: 'Allow'
             Action:
               - 'geo:GetPlaceIndex'
@@ -157,8 +167,8 @@ Outputs:
     Description: 'Route calculator resource Name.'
     Export:
       Name: !Sub '${AWS::StackName}-StoreFinder-RouteCalculatorName'
-  storeFinderAmplifyAppDefaultDomain:
-    Value: !GetAtt storeFinderAmplifyApp.DefaultDomain
-    Description: 'Amplify app default domain.'
+  storeFinderAmplifyAppURL:
+    Value: !Sub 'https://${storeFinderAmplifySubdomain}.${storeFinderAmplifyApp.DefaultDomain}'
+    Description: 'Amplify app URL.'
     Export:
-      Name: !Sub '${AWS::StackName}-StoreFinder-AmplifyAppDefaultDomain'
+      Name: !Sub '${AWS::StackName}-StoreFinder-AmplifyAppURL'
