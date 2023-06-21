@@ -8,6 +8,7 @@ import json
 import operator
 import psycopg2
 import boto3
+import botocore.exceptions
 
 ### Create Boto3 clients
 location_client = boto3.client("location")
@@ -32,7 +33,6 @@ keys = ["id", "name", "hours", "location", "Distance", "DurationSeconds"]
 
 def lambda_handler(event, context):
     """ Lambda handler for POST requests. """
-    ### Load Event Data
     cors_allow_origin = None
     if event["multiValueHeaders"]["origin"][0] in AWS_ALLOWED_CORS_ORIGINS:
         cors_allow_origin = event["multiValueHeaders"]["origin"][0]
@@ -72,8 +72,9 @@ def lambda_handler(event, context):
                             +radius+
                             "* 1609.34;")
         except (Exception, psycopg2.DatabaseError) as error:
-            print("Error: %s" % error)
-            return 1
+            error_message = "Error: " + str(error)
+            print(error_message)
+            raise Exception(error_message)
         data = cursor.fetchall()
         conn.close()
         ### Deduplicate query results
@@ -103,9 +104,10 @@ def lambda_handler(event, context):
                             DestinationPositions=destinations,
                             TravelMode="Car",
                             DistanceUnit="Kilometers")
-        except Exception as e:
-            print(e)
-            return e
+        except botocore.exceptions.ClientError as error:
+            error_message = "Error: " + str(error.response["Error"])
+            print(error_message)
+            raise Exception(error_message)
         route_matrix = dm_response["RouteMatrix"]
         indexer = 0
         full_data = []

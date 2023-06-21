@@ -6,6 +6,7 @@
 import os
 import json
 import boto3
+import botocore
 
 # Environment specific parameters pulled from Lambda environment variables
 AWS_REGION = os.environ["AWS_REGION"]
@@ -51,11 +52,16 @@ def lambda_handler(event, context):
             all_stores = all_stores_cache
             print("Local cache hit! (" + str(len(all_stores_cache)) + " stores)")
         else:
-            scan_paginator = dynamodb_client.meta.client.get_paginator("scan")
-            page_iterator = scan_paginator.paginate(
-                TableName=AMAZON_DYNAMODB_TABLE,
-                ProjectionExpression="id,storeName,storeAddress,storeHours,storeDistance,storeLocation"
-            )
+            try:
+                scan_paginator = dynamodb_client.meta.client.get_paginator("scan")
+                page_iterator = scan_paginator.paginate(
+                    TableName=AMAZON_DYNAMODB_TABLE,
+                    ProjectionExpression="id,storeName,storeAddress,storeHours,storeDistance,storeLocation"
+                )
+            except botocore.exceptions.ClientError as error:
+                error_message = "Error: " + str(error.response["Error"])
+                print(error_message)
+                raise Exception(error_message)
             all_stores = []
             for page in page_iterator:
                 all_stores.extend(page["Items"])
@@ -104,6 +110,10 @@ def lambda_handler(event, context):
                         "calculate-route-matrix.html#matrix-routing-position-limits"
                     ]
                     response["statusCode"] = 400
+                except botocore.exceptions.ClientError as error:
+                    error_message = "Error: " + str(error.response["Error"])
+                    print(error_message)
+                    raise Exception(error_message)
                 else:
                     result = 0
                     response_body = []
