@@ -10,6 +10,7 @@ import psycopg2
 import boto3
 import botocore.exceptions
 from aws_lambda_powertools.event_handler import APIGatewayRestResolver, CORSConfig
+from aws_lambda_powertools.event_handler.exceptions import BadRequestError, InternalServerError
 
 ### Get Environment Variables
 AWS_ALLOWED_CORS_ORIGINS = os.environ["AWS_ALLOWED_CORS_ORIGINS"].split(",")
@@ -70,7 +71,7 @@ def post_nearest_stores():
     except (Exception, psycopg2.DatabaseError) as error:
         error_message = "Error: " + str(error)
         print(error_message)
-        raise Exception(error_message)
+        raise InternalServerError(error_message)
     data = cursor.fetchall()
     conn.close()
     ### Deduplicate query results
@@ -103,7 +104,7 @@ def post_nearest_stores():
     except botocore.exceptions.ClientError as error:
         error_message = "Error: " + str(error.response["Error"])
         print(error_message)
-        raise Exception(error_message)
+        raise InternalServerError(error_message)
     route_matrix = dm_response["RouteMatrix"]
     indexer = 0
     full_data = []

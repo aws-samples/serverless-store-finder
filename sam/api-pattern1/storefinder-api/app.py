@@ -8,6 +8,7 @@ import json
 import boto3
 import botocore
 from aws_lambda_powertools.event_handler import APIGatewayRestResolver, CORSConfig
+from aws_lambda_powertools.event_handler.exceptions import BadRequestError, InternalServerError
 
 # Environment specific parameters pulled from Lambda environment variables
 AWS_REGION = os.environ["AWS_REGION"]
@@ -53,7 +54,7 @@ def get_all_store_locations():
         except botocore.exceptions.ClientError as error:
             error_message = "Error: " + str(error.response["Error"])
             print(error_message)
-            raise Exception(error_message)
+            raise InternalServerError(error_message)
         all_stores = []
         for page in page_iterator:
             all_stores.extend(page["Items"])
@@ -100,7 +101,7 @@ def post_nearest_stores():
         except location_client.exceptions.ValidationException as error:
             error_message = "Error: " + str(error.response["Error"])
             print(error_message)
-            raise Exception(
+            raise BadRequestError(
                 error_message +
                 " " +
                 "Check Amazon Location Service documentation for location data provider "+
@@ -110,7 +111,7 @@ def post_nearest_stores():
         except botocore.exceptions.ClientError as error:
             error_message = "Error: " + str(error.response["Error"])
             print(error_message)
-            raise Exception(error_message)
+            raise InternalServerError(error_message)
     result = 0
     nearest_stores = []
     while result < len(matrix_routing_results):

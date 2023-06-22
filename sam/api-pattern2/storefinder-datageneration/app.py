@@ -53,11 +53,10 @@ def execute_values(conn, cursor, data_frame, table):
     sql = "SELECT count(*) from "+rds_table+";"
     cursor.execute(sql)
     number_of_rows = int(cursor.fetchone()[0])
-    cursor.close()
     return number_of_rows
 
 def lambda_handler(event, context):
-    """ Lambda function for data generation using uploaded CSV in S3 bucket. """
+    """ Lambda function for data generation. """
     response = {}
     if event["RequestType"] == "Delete":
         cfnresponse.send(event, context, cfnresponse.SUCCESS, response)
@@ -121,6 +120,8 @@ def lambda_handler(event, context):
             print("Table created successfully........")
             number_of_stores = execute_values(conn, cursor, data_frame, rds_table)
             print(str(number_of_stores)+" records successfully inserted........")
+            cursor.close()
+            conn.close()
             response = {"message": str(number_of_stores)+" records successfully inserted."}
             cfnresponse.send(event, context, cfnresponse.SUCCESS, response)
         # Any exceptions, return a failure back to CloudFormation
