@@ -1,6 +1,6 @@
 # Build a serverless store finder site using Amazon Location Service
 
-This solution demonstrates how Amazon Location's Maps, Places and Routing APIs can be used to implement a simple "store finder" web page which lists the physical stores that are most accessible to the customer, along with pertinent store information such as opening hours and postal address.
+This solution demonstrates how Amazon Location Service's Maps, Places and Routing APIs can be used to implement a simple "store finder" web page which lists the physical stores that are most accessible to the customer, along with pertinent store information such as opening hours and postal address.
 
 The solution will outline two approaches: the first pattern is designed for an example business with less than 20 stores distributed across a geographic area the size of the United Kingdom (UK). The second approach is targeted at a business with greater than 20 locations distributed across a geographic area the size of the United States (US).
 
