@@ -8,7 +8,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@aws-amplify/ui-vue": "^3.1.17",
+    "@aws-amplify/ui-vue": "^4.2.28",
     "@maplibre/maplibre-gl-geocoder": "^1.5.0",
     "aws-amplify": "^6.6.4",
     "maplibre-gl": "^1.15.3",
